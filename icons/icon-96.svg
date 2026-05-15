@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-label="Danvers Karakeep">
+  <rect width="96" height="96" rx="24" fill="#707aff"/>
+  <path d="M28 24h40a8 8 0 0 1 8 8v44L48 62 20 76V32a8 8 0 0 1 8-8Z" fill="#ffffff"/>
+  <path d="M36 38h24M36 50h16" stroke="#707aff" stroke-width="6" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Danvers",
+  "version": "0.1.0",
+  "description": "Save the current page to Karakeep from an inline Iceraven-friendly overlay.",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "scripts": [
+      "src/background.js"
+    ]
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon-48.svg",
+      "32": "icons/icon-48.svg",
+      "48": "icons/icon-48.svg"
+    },
+    "default_title": "Save to Karakeep"
+  },
+  "icons": {
+    "48": "icons/icon-48.svg",
+    "96": "icons/icon-96.svg"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "danvers-karakeep@local",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  }
+}

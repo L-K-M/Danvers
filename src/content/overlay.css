@@ -1,0 +1,16 @@
+#danvers-karakeep-overlay-host {
+  all: initial;
+  position: fixed !important;
+  inset: auto 12px max(12px, env(safe-area-inset-bottom)) 12px !important;
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+}
+
+@media (min-width: 700px) {
+  #danvers-karakeep-overlay-host {
+    left: auto !important;
+    right: 18px !important;
+    bottom: 18px !important;
+    width: 380px !important;
+  }
+}

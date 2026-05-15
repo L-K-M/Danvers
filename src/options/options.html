@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Danvers Karakeep Settings</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="card">
+        <div class="heading">
+          <img src="../../icons/icon-48.svg" alt="" width="42" height="42">
+          <div>
+            <p class="eyebrow">Danvers Karakeep</p>
+            <h1>Extension Settings</h1>
+          </div>
+        </div>
+
+        <form id="settings-form">
+          <label class="field">
+            <span>Karakeep server URL</span>
+            <input id="serverUrl" type="url" placeholder="https://cloud.karakeep.app" autocomplete="url" required>
+          </label>
+
+          <label class="field">
+            <span>API token</span>
+            <input id="apiToken" type="password" placeholder="Paste Karakeep API token" autocomplete="off">
+          </label>
+
+          <label class="check-row">
+            <input id="allowHttp" type="checkbox">
+            <span>Allow HTTP server URLs for local/self-hosted testing</span>
+          </label>
+
+          <label class="check-row">
+            <input id="showListSelector" type="checkbox">
+            <span>Show List selector after saving</span>
+          </label>
+
+          <label class="check-row">
+            <input id="autoDismiss" type="checkbox">
+            <span>Auto-dismiss success panel when no action is needed</span>
+          </label>
+
+          <label class="field">
+            <span>Default List</span>
+            <select id="defaultListId">
+              <option value="">No default List</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button class="primary" type="submit">Save Settings</button>
+            <button type="button" id="testConnection">Test Connection</button>
+            <button type="button" id="reloadLists">Reload Lists</button>
+          </div>
+        </form>
+
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </section>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>
