@@ -17,7 +17,7 @@
     "https://*/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http://*/* https://*/*"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http: https:"
   },
   "background": {
     "scripts": [
@@ -38,7 +38,7 @@
   },
   "options_ui": {
     "page": "src/options/options.html",
-    "open_in_tab": true
+    "open_in_tab": false
   },
   "browser_specific_settings": {
     "gecko": {

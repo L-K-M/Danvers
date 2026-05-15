@@ -210,13 +210,9 @@
       return;
     }
 
-    if (ext.permissions.contains) {
-      const alreadyGranted = await ext.permissions.contains({ origins });
-      if (alreadyGranted) {
-        return;
-      }
-    }
-
+    // Firefox requires permissions.request to be the first permission call made
+    // from the user gesture. Calling permissions.contains first can consume the
+    // gesture and make request fail.
     const granted = await ext.permissions.request({ origins });
     if (!granted) {
       throw new Error("Permission to connect to the configured Karakeep server was not granted.");
