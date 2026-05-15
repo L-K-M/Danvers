@@ -34,11 +34,15 @@
     }
 
     if (message.type === "GET_LISTS") {
-      return getLists();
+      return getLists(message.payload);
     }
 
     if (message.type === "ADD_TO_LIST") {
       return addToList(message.payload);
+    }
+
+    if (message.type === "REMOVE_FROM_LIST") {
+      return removeFromList(message.payload);
     }
 
     if (message.type === "OPEN_OPTIONS") {
@@ -201,7 +205,7 @@
     }
   }
 
-  async function getLists() {
+  async function getLists(payload) {
     try {
       const settings = await getSettings();
       ensureConfigured(settings);
@@ -218,8 +222,23 @@
       const editableLists = buildListPaths(lists).filter(
         (list) => list.userRole !== "viewer" && list.userRole !== "public",
       );
+      let selectedListIds = [];
 
-      return { ok: true, lists: editableLists, server: response.server };
+      if (payload && payload.bookmarkId) {
+        const selectedResponse = await karakeepRequest(
+          settings,
+          "lists.getListsOfBookmark",
+          { bookmarkId: payload.bookmarkId },
+          LIST_TIMEOUT_MS,
+          "GET",
+        );
+        const selectedLists = Array.isArray(selectedResponse.data.lists)
+          ? selectedResponse.data.lists
+          : [];
+        selectedListIds = selectedLists.map((list) => list.id);
+      }
+
+      return { ok: true, lists: editableLists, selectedListIds, server: response.server };
     } catch (error) {
       return { ok: false, error: normalizeErrorMessage(error) };
     }
@@ -237,6 +256,28 @@
       const response = await karakeepRequest(
         settings,
         "lists.addToList",
+        { bookmarkId: payload.bookmarkId, listId: payload.listId },
+        LIST_TIMEOUT_MS,
+      );
+
+      return { ok: true, server: response.server };
+    } catch (error) {
+      return { ok: false, error: normalizeErrorMessage(error) };
+    }
+  }
+
+  async function removeFromList(payload) {
+    try {
+      if (!payload || !payload.bookmarkId || !payload.listId) {
+        throw userError("Missing bookmark or List id.");
+      }
+
+      const settings = await getSettings();
+      ensureConfigured(settings);
+
+      const response = await karakeepRequest(
+        settings,
+        "lists.removeFromList",
         { bookmarkId: payload.bookmarkId, listId: payload.listId },
         LIST_TIMEOUT_MS,
       );

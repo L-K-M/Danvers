@@ -23,7 +23,8 @@
     listsLoaded: false,
     listsLoading: false,
     selectedListId: "",
-    addingList: false,
+    selectedListIds: [],
+    updatingListIds: [],
     listMessage: "",
     listError: "",
     showListSelector: true,
@@ -66,7 +67,8 @@
     state.listsLoaded = false;
     state.listsLoading = false;
     state.selectedListId = "";
-    state.addingList = false;
+    state.selectedListIds = [];
+    state.updatingListIds = [];
     state.listMessage = "";
     state.listError = "";
     state.interacted = false;
@@ -143,7 +145,10 @@
     }
 
     setState({ listsLoading: true, listError: "", listMessage: state.listMessage });
-    const response = await sendMessage({ type: "GET_LISTS" });
+    const response = await sendMessage({
+      type: "GET_LISTS",
+      payload: { bookmarkId: state.bookmark.id },
+    });
 
     if (requestId !== state.requestId) {
       return;
@@ -160,6 +165,9 @@
 
     setState({
       lists: Array.isArray(response.lists) ? response.lists : [],
+      selectedListIds: Array.isArray(response.selectedListIds)
+        ? response.selectedListIds
+        : [],
       listsLoading: false,
       listsLoaded: true,
     });
@@ -167,38 +175,56 @@
     scheduleDismiss();
   }
 
-  async function addSelectedList() {
-    if (!state.bookmark || !state.selectedListId || state.addingList) {
+  async function setListSelection(listId, selected) {
+    if (!state.bookmark || !listId || state.updatingListIds.includes(listId)) {
+      return;
+    }
+
+    if (selected && state.selectedListIds.includes(listId)) {
+      return;
+    }
+
+    if (!selected && !state.selectedListIds.includes(listId)) {
       return;
     }
 
     state.interacted = true;
     clearDismissTimer();
-    setState({ addingList: true, listError: "", listMessage: "Adding to List..." });
+    const selectedList = state.lists.find((list) => list.id === listId);
+    setState({
+      updatingListIds: [...state.updatingListIds, listId],
+      listError: "",
+      listMessage: selected ? "Adding to List..." : "Removing from List...",
+    });
 
-    const selected = state.lists.find((list) => list.id === state.selectedListId);
     const response = await sendMessage({
-      type: "ADD_TO_LIST",
+      type: selected ? "ADD_TO_LIST" : "REMOVE_FROM_LIST",
       payload: {
         bookmarkId: state.bookmark.id,
-        listId: state.selectedListId,
+        listId,
       },
     });
 
     if (!response || !response.ok) {
       setState({
-        addingList: false,
+        updatingListIds: state.updatingListIds.filter((id) => id !== listId),
         listMessage: "",
-        listError: response && response.error ? response.error : "Could not add to List.",
+        listError: response && response.error ? response.error : "Could not update List.",
       });
       return;
     }
 
+    const selectedListIds = selected
+      ? [...new Set([...state.selectedListIds, listId])]
+      : state.selectedListIds.filter((id) => id !== listId);
+
     setState({
-      addingList: false,
+      selectedListIds,
+      selectedListId: selected ? listId : "",
+      updatingListIds: state.updatingListIds.filter((id) => id !== listId),
       listMessage: selected
-        ? `Added to ${selected.path}${response.server ? ` via ${response.server.label}` : ""}.`
-        : `Added to List${response.server ? ` via ${response.server.label}` : ""}.`,
+        ? `Added to ${selectedList ? selectedList.path : "List"}${response.server ? ` via ${response.server.label}` : ""}.`
+        : `Removed from ${selectedList ? selectedList.path : "List"}${response.server ? ` via ${response.server.label}` : ""}.`,
       listError: "",
     });
     scheduleDismiss();
@@ -319,30 +345,62 @@
       return `<div class="list-box muted">No editable Lists found.</div>`;
     }
 
+    const selectedDropdownListId = state.selectedListId || state.selectedListIds[0] || "";
     const options = state.lists
       .map((list) => {
-        const selected = list.id === state.selectedListId ? " selected" : "";
+        const selected = list.id === selectedDropdownListId ? " selected" : "";
         return `<option value="${escapeHtml(list.id)}"${selected}>${escapeHtml(list.path)}</option>`;
+      })
+      .join("");
+
+    if (state.lists.length <= 3) {
+      return renderListCheckboxes();
+    }
+
+    return renderListDropdown(options);
+  }
+
+  function renderListCheckboxes() {
+    const items = state.lists
+      .map((list) => {
+        const checked = state.selectedListIds.includes(list.id) ? " checked" : "";
+        const disabled = state.updatingListIds.includes(list.id) ? " disabled" : "";
+        return `
+          <label class="list-check-row">
+            <input type="checkbox" value="${escapeHtml(list.id)}" data-action="toggle-list"${checked}${disabled}>
+            <span>${escapeHtml(list.path)}</span>
+          </label>
+        `;
       })
       .join("");
 
     return `
       <div class="list-box">
+        <div class="label">Optional Lists</div>
+        <div class="list-checks">${items}</div>
+      </div>
+    `;
+  }
+
+  function renderListDropdown(options) {
+    return `
+      <div class="list-box">
         <label class="label" for="danvers-list-select">Optional List</label>
-        <div class="list-row">
-          <select id="danvers-list-select" class="select" data-action="select-list">
-            <option value="">Choose List...</option>
-            ${options}
-          </select>
-          <button class="button primary" type="button" data-action="add-list" ${!state.selectedListId || state.addingList ? "disabled" : ""}>
-            ${state.addingList ? "Adding..." : "Add"}
-          </button>
-        </div>
+        <select id="danvers-list-select" class="select" data-action="select-list">
+          <option value="">Choose List...</option>
+          ${options}
+        </select>
       </div>
     `;
   }
 
   function bindEvents() {
+    const panel = shadow.querySelector(".panel");
+    if (panel) {
+      panel.addEventListener("pointerdown", cancelDismissFromInteraction);
+      panel.addEventListener("click", cancelDismissFromInteraction);
+    }
+
     const closeButtons = shadow.querySelectorAll('[data-action="close"]');
     closeButtons.forEach((button) => button.addEventListener("click", closeOverlay));
 
@@ -376,13 +434,18 @@
       select.addEventListener("change", (event) => {
         state.interacted = true;
         setState({ selectedListId: event.target.value, listMessage: "", listError: "" });
+        if (event.target.value) {
+          setListSelection(event.target.value, true);
+        }
       });
     }
 
-    const addButton = shadow.querySelector('[data-action="add-list"]');
-    if (addButton) {
-      addButton.addEventListener("click", addSelectedList);
-    }
+    const listToggles = shadow.querySelectorAll('[data-action="toggle-list"]');
+    listToggles.forEach((toggle) => {
+      toggle.addEventListener("change", (event) => {
+        setListSelection(event.target.value, event.target.checked);
+      });
+    });
   }
 
   function setState(patch) {
@@ -397,6 +460,17 @@
     }
     host = null;
     shadow = null;
+  }
+
+  function cancelDismissFromInteraction() {
+    if (state.dismissTimer) {
+      state.interacted = true;
+      clearDismissTimer();
+      const progress = shadow && shadow.querySelector(".dismiss-progress");
+      if (progress) {
+        progress.remove();
+      }
+    }
   }
 
   function fadeOutAndCloseOverlay() {
@@ -655,9 +729,27 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
-      .list-row {
+      .list-checks {
         display: flex;
+        flex-direction: column;
         gap: 8px;
+      }
+      .list-check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 44px;
+      }
+      .list-check-row input {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+        accent-color: #707aff;
+      }
+      .list-check-row span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .select {
         min-width: 0;
@@ -681,7 +773,6 @@
         }
       }
       @media (max-width: 360px) {
-        .list-row,
         .actions {
           flex-direction: column;
         }
