@@ -26,6 +26,7 @@
     listMessage: "",
     listError: "",
     showListSelector: true,
+    autoDismiss: true,
     defaultListId: "",
     interacted: false,
     dismissTimer: null,
@@ -114,6 +115,7 @@
       bookmark: response.bookmark,
       alreadyExists: Boolean(response.alreadyExists),
       showListSelector: preferences.showListSelector !== false,
+      autoDismiss: preferences.autoDismiss !== false,
       defaultListId: preferences.defaultListId || "",
       listMessage:
         autoListResult && autoListResult.ok
@@ -391,7 +393,12 @@
   }
 
   function scheduleDismiss() {
-    if (state.status !== "success" || state.listError || state.dismissTimer) {
+    if (
+      !state.autoDismiss ||
+      state.status !== "success" ||
+      state.listError ||
+      state.dismissTimer
+    ) {
       return;
     }
 
