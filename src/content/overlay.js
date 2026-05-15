@@ -251,7 +251,7 @@
 
     const title = state.status === "error" ? "Karakeep save failed" : "Save to Karakeep";
     const statusClass = state.status === "error" ? "danger" : state.status === "success" ? "success" : "saving";
-    const statusText = state.status === "saving" ? state.detail || "Saving link..." : state.status === "success" ? state.detail : state.error;
+    const statusText = getStatusText();
 
     shadow.innerHTML = `
       <style>${styles()}</style>
@@ -278,6 +278,18 @@
     `;
 
     bindEvents();
+  }
+
+  function getStatusText() {
+    if (state.status === "saving") {
+      return state.detail || "Saving link...";
+    }
+
+    if (state.status === "success") {
+      return state.listMessage || state.detail;
+    }
+
+    return state.error;
   }
 
   function renderDismissProgress() {
@@ -327,10 +339,6 @@
           <button class="button" type="button" data-action="retry-lists">Retry Lists</button>
         </div>
       `;
-    }
-
-    if (state.listMessage) {
-      return `<div class="list-box success-text">${escapeHtml(state.listMessage)}</div>${renderListPicker()}`;
     }
 
     return renderListPicker();
