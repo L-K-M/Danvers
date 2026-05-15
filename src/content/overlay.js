@@ -227,7 +227,10 @@
             <div class="eyebrow">Karakeep</div>
             <div class="title">${escapeHtml(title)}</div>
           </div>
-          <button class="icon-button" type="button" data-action="close" aria-label="Close">x</button>
+          <div class="header-actions">
+            <button class="icon-button" type="button" data-action="options" aria-label="Settings">⚙</button>
+            <button class="icon-button" type="button" data-action="close" aria-label="Close">×</button>
+          </div>
         </div>
         <div class="status ${statusClass}">
           ${state.status === "saving" ? '<span class="spinner" aria-hidden="true"></span>' : ""}
@@ -254,16 +257,6 @@
       return `
         <div class="actions">
           <button class="button primary" type="button" data-action="retry-save">Retry save</button>
-          <button class="button" type="button" data-action="options">Settings</button>
-        </div>
-      `;
-    }
-
-    if (state.status === "success") {
-      return `
-        <div class="actions">
-          <button class="button" type="button" data-action="options">Settings</button>
-          <button class="button quiet" type="button" data-action="close">Close</button>
         </div>
       `;
     }
@@ -453,6 +446,11 @@
         gap: 12px;
         padding: 16px 16px 10px;
       }
+      .header-actions {
+        display: flex;
+        flex: 0 0 auto;
+        gap: 8px;
+      }
       .eyebrow {
         color: #9fa8bd;
         font-size: 12px;
@@ -474,7 +472,8 @@
         background: rgba(255, 255, 255, 0.08);
         color: #f7f7fb;
         font: inherit;
-        font-size: 18px;
+        font-size: 20px;
+        line-height: 1;
       }
       .status {
         display: flex;
