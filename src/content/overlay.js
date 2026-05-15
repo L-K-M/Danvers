@@ -26,10 +26,10 @@
     listMessage: "",
     listError: "",
     showListSelector: true,
-    autoDismiss: true,
     defaultListId: "",
     interacted: false,
     dismissTimer: null,
+    dismissStartedAt: 0,
   };
 
   let host = null;
@@ -64,6 +64,7 @@
     state.listMessage = "";
     state.listError = "";
     state.interacted = false;
+    state.dismissStartedAt = 0;
 
     render();
 
@@ -113,7 +114,6 @@
       bookmark: response.bookmark,
       alreadyExists: Boolean(response.alreadyExists),
       showListSelector: preferences.showListSelector !== false,
-      autoDismiss: preferences.autoDismiss !== false,
       defaultListId: preferences.defaultListId || "",
       listMessage:
         autoListResult && autoListResult.ok
@@ -122,10 +122,10 @@
       listError: autoListError,
     });
 
+    scheduleDismiss();
+
     if (state.showListSelector) {
       loadLists(requestId);
-    } else if (state.autoDismiss && !autoListError) {
-      scheduleDismiss();
     }
   }
 
@@ -156,9 +156,7 @@
       listsLoaded: true,
     });
 
-    if (state.autoDismiss && state.lists.length === 0 && !state.interacted) {
-      scheduleDismiss();
-    }
+    scheduleDismiss();
   }
 
   async function addSelectedList() {
@@ -195,6 +193,7 @@
         : `Added to List${response.server ? ` via ${response.server.label}` : ""}.`,
       listError: "",
     });
+    scheduleDismiss();
   }
 
   function ensureOverlay() {
@@ -222,6 +221,7 @@
     shadow.innerHTML = `
       <style>${styles()}</style>
       <section class="panel" role="status" aria-live="polite">
+        ${renderDismissProgress()}
         <div class="header">
           <div>
             <div class="eyebrow">Karakeep</div>
@@ -243,6 +243,18 @@
     `;
 
     bindEvents();
+  }
+
+  function renderDismissProgress() {
+    if (state.status !== "success" || state.listError || !state.dismissStartedAt) {
+      return "";
+    }
+
+    const elapsed = Math.max(0, Date.now() - state.dismissStartedAt);
+    const progress = Math.min(100, (elapsed / AUTO_DISMISS_MS) * 100);
+    const remaining = Math.max(1, AUTO_DISMISS_MS - elapsed);
+
+    return `<div class="dismiss-progress" aria-hidden="true"><div class="dismiss-progress-bar" style="width: ${progress}%; animation-duration: ${remaining}ms;"></div></div>`;
   }
 
   function renderUrl() {
@@ -328,8 +340,8 @@
     const retrySave = shadow.querySelector('[data-action="retry-save"]');
     if (retrySave) {
       retrySave.addEventListener("click", () => {
-        state.interacted = true;
-        clearDismissTimer();
+    state.interacted = true;
+    clearDismissTimer();
         saveCurrentPage(state.requestId);
       });
     }
@@ -338,7 +350,6 @@
     if (retryLists) {
       retryLists.addEventListener("click", () => {
         state.interacted = true;
-        clearDismissTimer();
         loadLists(state.requestId);
       });
     }
@@ -347,7 +358,6 @@
     if (optionsButton) {
       optionsButton.addEventListener("click", () => {
         state.interacted = true;
-        clearDismissTimer();
         sendMessage({ type: "OPEN_OPTIONS" });
       });
     }
@@ -356,7 +366,6 @@
     if (select) {
       select.addEventListener("change", (event) => {
         state.interacted = true;
-        clearDismissTimer();
         setState({ selectedListId: event.target.value, listMessage: "", listError: "" });
       });
     }
@@ -382,15 +391,15 @@
   }
 
   function scheduleDismiss() {
-    clearDismissTimer();
-    if (!state.autoDismiss || state.interacted) {
+    if (state.status !== "success" || state.listError || state.dismissTimer) {
       return;
     }
+
+    state.dismissStartedAt = Date.now();
     state.dismissTimer = setTimeout(() => {
-      if (!state.interacted) {
-        closeOverlay();
-      }
+      closeOverlay();
     }, AUTO_DISMISS_MS);
+    render();
   }
 
   function clearDismissTimer() {
@@ -398,6 +407,7 @@
       clearTimeout(state.dismissTimer);
       state.dismissTimer = null;
     }
+    state.dismissStartedAt = 0;
   }
 
   function sendMessage(message) {
@@ -428,6 +438,7 @@
         box-sizing: border-box;
       }
       .panel {
+        position: relative;
         width: 100%;
         max-width: 420px;
         margin: 0 auto;
@@ -438,6 +449,22 @@
         color: #f7f7fb;
         overflow: hidden;
         backdrop-filter: blur(14px);
+      }
+      .dismiss-progress {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      .dismiss-progress-bar {
+        height: 100%;
+        background: #5ff0a8;
+        animation-name: dismiss-progress;
+        animation-timing-function: linear;
+        animation-fill-mode: forwards;
       }
       .header {
         display: flex;
@@ -585,6 +612,9 @@
       }
       @keyframes spin {
         to { transform: rotate(360deg); }
+      }
+      @keyframes dismiss-progress {
+        to { width: 100%; }
       }
       @media (max-width: 360px) {
         .list-row,
