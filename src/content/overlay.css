@@ -6,11 +6,55 @@
   pointer-events: auto !important;
 }
 
+#danvers-karakeep-overlay-host[data-position="top-left"] {
+  inset: max(12px, env(safe-area-inset-top)) 12px auto 12px !important;
+}
+
+#danvers-karakeep-overlay-host[data-position="top-right"] {
+  inset: max(12px, env(safe-area-inset-top)) 12px auto 12px !important;
+}
+
+#danvers-karakeep-overlay-host[data-position="bottom-left"] {
+  inset: auto 12px max(12px, env(safe-area-inset-bottom)) 12px !important;
+}
+
+#danvers-karakeep-overlay-host[data-position="bottom-right"] {
+  inset: auto 12px max(12px, env(safe-area-inset-bottom)) 12px !important;
+}
+
 @media (min-width: 700px) {
   #danvers-karakeep-overlay-host {
     left: auto !important;
     right: 18px !important;
     bottom: 18px !important;
     width: 380px !important;
+  }
+
+  #danvers-karakeep-overlay-host[data-position="top-left"] {
+    top: 18px !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 18px !important;
+  }
+
+  #danvers-karakeep-overlay-host[data-position="top-right"] {
+    top: 18px !important;
+    right: 18px !important;
+    bottom: auto !important;
+    left: auto !important;
+  }
+
+  #danvers-karakeep-overlay-host[data-position="bottom-left"] {
+    top: auto !important;
+    right: auto !important;
+    bottom: 18px !important;
+    left: 18px !important;
+  }
+
+  #danvers-karakeep-overlay-host[data-position="bottom-right"] {
+    top: auto !important;
+    right: 18px !important;
+    bottom: 18px !important;
+    left: auto !important;
   }
 }

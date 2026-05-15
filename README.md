@@ -10,6 +10,7 @@ Danvers is an alternative Karakeep browser extension mainly aimed at mobile Fire
 4. Paste a Karakeep API token.
 5. Use `Test Connection` to verify the token and load editable Lists.
 6. Optionally choose a default List.
+7. Choose where the inline popup appears: top left, top right, bottom left, or bottom right.
 
 Danvers always tries the primary server first. If the primary request fails because the server cannot be reached or returns a server-side error, it retries the same request against the secondary server. Authentication and validation errors do not fall back because the same token/request is expected to fail on both addresses.
 

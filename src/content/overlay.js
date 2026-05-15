@@ -28,6 +28,7 @@
     showListSelector: true,
     autoDismiss: true,
     defaultListId: "",
+    popupPosition: "bottom-right",
     interacted: false,
     dismissTimer: null,
     dismissStartedAt: 0,
@@ -52,6 +53,8 @@
     state.requestId = payload.requestId || `${Date.now()}`;
     state.url = payload.url || window.location.href;
     state.title = payload.title || document.title;
+    state.popupPosition = normalizePopupPosition(payload.popupPosition);
+    applyHostPosition();
     state.status = payload.immediateError ? "error" : "saving";
     state.detail = "";
     state.error = payload.immediateError || "";
@@ -209,6 +212,7 @@
     if (!shadow || shadow.host !== host) {
       shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
     }
+    applyHostPosition();
   }
 
   function render() {
@@ -390,6 +394,24 @@
     }
     host = null;
     shadow = null;
+  }
+
+  function normalizePopupPosition(position) {
+    if (
+      position === "top-left" ||
+      position === "top-right" ||
+      position === "bottom-left" ||
+      position === "bottom-right"
+    ) {
+      return position;
+    }
+    return "bottom-right";
+  }
+
+  function applyHostPosition() {
+    if (host) {
+      host.dataset.position = state.popupPosition;
+    }
   }
 
   function scheduleDismiss() {

@@ -9,6 +9,7 @@
     defaultListId: "",
     showListSelector: true,
     autoDismiss: true,
+    popupPosition: "bottom-right",
     allowHttp: false,
   };
   const SAVE_TIMEOUT_MS = 30000;
@@ -57,10 +58,12 @@
     }
 
     const requestId = createRequestId();
+    const settings = await getSettings();
     const payload = {
       requestId,
       url: tab.url || "",
       title: tab.title || "",
+      popupPosition: settings.popupPosition,
     };
 
     if (!isHttpPageUrl(payload.url)) {
@@ -284,8 +287,21 @@
         typeof stored.defaultListId === "string" ? stored.defaultListId : "",
       showListSelector: stored.showListSelector !== false,
       autoDismiss: stored.autoDismiss !== false,
+      popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
     };
+  }
+
+  function normalizePopupPosition(position) {
+    if (
+      position === "top-left" ||
+      position === "top-right" ||
+      position === "bottom-left" ||
+      position === "bottom-right"
+    ) {
+      return position;
+    }
+    return DEFAULT_SETTINGS.popupPosition;
   }
 
   function ensureConfigured(settings) {

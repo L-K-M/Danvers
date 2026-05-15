@@ -1,5 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img" aria-label="Danvers Karakeep">
-  <rect width="48" height="48" rx="12" fill="#707aff"/>
-  <path d="M14 12h20a4 4 0 0 1 4 4v22L24 31l-14 7V16a4 4 0 0 1 4-4Z" fill="#ffffff"/>
-  <path d="M18 19h12M18 25h8" stroke="#707aff" stroke-width="3" stroke-linecap="round"/>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <path d="M48,12L48,36C48,42.623 42.623,48 36,48L12,48C5.377,48 0,42.623 0,36L0,12C0,5.377 5.377,0 12,0L36,0C42.623,0 48,5.377 48,12Z" style="fill:rgb(112,122,255);"/>
+    <path d="M12,0L18.633,0C19.224,0 19.694,0.458 19.694,1.034L19.694,19.045C19.694,19.045 19.587,26.794 19.99,32.881L19.99,48L12,48C5.377,48 0,42.623 0,36L0,12C0,5.377 5.377,0 12,0ZM28.01,48L28.01,11.498C28.01,11.047 28.481,10.688 29.072,10.688L47.481,10.688C47.645,10.688 47.799,10.715 47.937,10.764C47.979,11.171 48,11.583 48,12L48,36C48,42.623 42.623,48 36,48L28.01,48Z" style="fill:white;"/>
+    <g transform="matrix(1.371691,0,0,1.917146,-9.606429,-29.804356)">
+        <path d="M24.5,21L38,32L11,32L24.5,21Z" style="fill:rgb(112,122,255);"/>
+    </g>
+    <g transform="matrix(1.060147,0,0,0.857143,-1.443522,9.428571)">
+        <rect x="17" y="24" width="14" height="21" style="fill:rgb(112,122,255);"/>
+    </g>
 </svg>

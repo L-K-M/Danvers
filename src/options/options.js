@@ -9,6 +9,7 @@
     defaultListId: "",
     showListSelector: true,
     autoDismiss: true,
+    popupPosition: "bottom-right",
     allowHttp: false,
   };
 
@@ -19,6 +20,7 @@
   const allowHttpInput = document.getElementById("allowHttp");
   const showListSelectorInput = document.getElementById("showListSelector");
   const autoDismissInput = document.getElementById("autoDismiss");
+  const popupPositionSelect = document.getElementById("popupPosition");
   const defaultListSelect = document.getElementById("defaultListId");
   const testButton = document.getElementById("testConnection");
   const reloadListsButton = document.getElementById("reloadLists");
@@ -37,6 +39,7 @@
     allowHttpInput.checked = settings.allowHttp;
     showListSelectorInput.checked = settings.showListSelector;
     autoDismissInput.checked = settings.autoDismiss;
+    popupPositionSelect.value = settings.popupPosition;
     await populateLists(settings.defaultListId, false);
   }
 
@@ -156,6 +159,7 @@
         typeof stored.defaultListId === "string" ? stored.defaultListId : "",
       showListSelector: stored.showListSelector !== false,
       autoDismiss: stored.autoDismiss !== false,
+      popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
     };
   }
@@ -168,8 +172,21 @@
       defaultListId: defaultListSelect.value,
       showListSelector: showListSelectorInput.checked,
       autoDismiss: autoDismissInput.checked,
+      popupPosition: normalizePopupPosition(popupPositionSelect.value),
       allowHttp: allowHttpInput.checked,
     };
+  }
+
+  function normalizePopupPosition(position) {
+    if (
+      position === "top-left" ||
+      position === "top-right" ||
+      position === "bottom-left" ||
+      position === "bottom-right"
+    ) {
+      return position;
+    }
+    return DEFAULT_SETTINGS.popupPosition;
   }
 
   function validateSettings(settings, requireToken) {
