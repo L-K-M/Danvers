@@ -12,9 +12,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(112, 122, 255, 0.28), transparent 32rem),
-    #101218;
+  background: #101218;
 }
 
 .shell {
@@ -24,10 +22,6 @@ body {
 }
 
 .card {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 22px;
-  background: rgba(22, 25, 34, 0.94);
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.32);
   padding: 22px;
 }
 
@@ -156,7 +150,7 @@ button:disabled {
 
 @media (max-width: 460px) {
   .card {
-    padding: 18px;
+    padding: 12px 4px;
   }
 
   .actions,
