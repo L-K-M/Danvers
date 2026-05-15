@@ -13,6 +13,8 @@ Danvers is an alternative Karakeep browser extension mainly aimed at mobile Fire
 
 Danvers always tries the primary server first. If the primary request fails because the server cannot be reached or returns a server-side error, it retries the same request against the secondary server. Authentication and validation errors do not fall back because the same token/request is expected to fail on both addresses.
 
+If you use an `http://` local address, enable `Allow HTTP server URLs for local/self-hosted testing`. Firefox/Iceraven may also prompt for permission to connect to the configured origin when you save settings or test the connection.
+
 ## Build
 
 Run a syntax check:

@@ -10,8 +10,15 @@
     "scripting"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://cloud.karakeep.app/*"
   ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' http://*/* https://*/*"
+  },
   "background": {
     "scripts": [
       "src/background.js"

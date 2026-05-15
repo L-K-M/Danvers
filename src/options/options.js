@@ -46,6 +46,7 @@
 
     try {
       validateSettings(settings, false);
+      await ensureServerPermissions(settings);
       await ext.storage.local.set(settings);
       setStatus("Settings saved.", "success");
       await populateLists(settings.defaultListId, false);
@@ -58,6 +59,7 @@
     const settings = readFormSettings();
     try {
       validateSettings(settings, true);
+      await ensureServerPermissions(settings);
       await ext.storage.local.set(settings);
       setBusy(testButton, true, "Testing...");
       const response = await sendMessage({ type: "GET_LISTS" });
@@ -77,6 +79,7 @@
     const settings = readFormSettings();
     try {
       validateSettings(settings, true);
+      await ensureServerPermissions(settings);
       await ext.storage.local.set(settings);
       await populateLists(settings.defaultListId, true);
     } catch (error) {
@@ -194,6 +197,46 @@
 
     if (parsed.protocol !== "https:" && !(allowHttp && parsed.protocol === "http:")) {
       throw new Error(`${label} Karakeep server URL must use HTTPS unless HTTP is enabled.`);
+    }
+  }
+
+  async function ensureServerPermissions(settings) {
+    if (!ext.permissions || !ext.permissions.request) {
+      return;
+    }
+
+    const origins = getServerPermissionOrigins(settings);
+    if (origins.length === 0) {
+      return;
+    }
+
+    if (ext.permissions.contains) {
+      const alreadyGranted = await ext.permissions.contains({ origins });
+      if (alreadyGranted) {
+        return;
+      }
+    }
+
+    const granted = await ext.permissions.request({ origins });
+    if (!granted) {
+      throw new Error("Permission to connect to the configured Karakeep server was not granted.");
+    }
+  }
+
+  function getServerPermissionOrigins(settings) {
+    return [settings.primaryServerUrl, settings.secondaryServerUrl]
+      .filter(Boolean)
+      .map(urlToPermissionOrigin)
+      .filter(Boolean)
+      .filter((origin, index, origins) => origins.indexOf(origin) === index);
+  }
+
+  function urlToPermissionOrigin(url) {
+    try {
+      const parsed = new URL(url);
+      return `${parsed.protocol}//${parsed.host}/*`;
+    } catch (_error) {
+      return "";
     }
   }
 
