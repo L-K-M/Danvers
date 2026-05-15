@@ -9,6 +9,7 @@
     defaultListId: "",
     showListSelector: true,
     autoDismiss: true,
+    autoDismissSeconds: 5,
     popupPosition: "bottom-right",
     allowHttp: false,
   };
@@ -20,6 +21,7 @@
   const allowHttpInput = document.getElementById("allowHttp");
   const showListSelectorInput = document.getElementById("showListSelector");
   const autoDismissInput = document.getElementById("autoDismiss");
+  const autoDismissSecondsInput = document.getElementById("autoDismissSeconds");
   const popupPositionSelect = document.getElementById("popupPosition");
   const defaultListSelect = document.getElementById("defaultListId");
   const testButton = document.getElementById("testConnection");
@@ -39,6 +41,7 @@
     allowHttpInput.checked = settings.allowHttp;
     showListSelectorInput.checked = settings.showListSelector;
     autoDismissInput.checked = settings.autoDismiss;
+    autoDismissSecondsInput.value = String(settings.autoDismissSeconds);
     popupPositionSelect.value = settings.popupPosition;
     await populateLists(settings.defaultListId, false);
   }
@@ -159,6 +162,7 @@
         typeof stored.defaultListId === "string" ? stored.defaultListId : "",
       showListSelector: stored.showListSelector !== false,
       autoDismiss: stored.autoDismiss !== false,
+      autoDismissSeconds: normalizeAutoDismissSeconds(stored.autoDismissSeconds),
       popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
     };
@@ -172,6 +176,7 @@
       defaultListId: defaultListSelect.value,
       showListSelector: showListSelectorInput.checked,
       autoDismiss: autoDismissInput.checked,
+      autoDismissSeconds: normalizeAutoDismissSeconds(autoDismissSecondsInput.value),
       popupPosition: normalizePopupPosition(popupPositionSelect.value),
       allowHttp: allowHttpInput.checked,
     };
@@ -187,6 +192,14 @@
       return position;
     }
     return DEFAULT_SETTINGS.popupPosition;
+  }
+
+  function normalizeAutoDismissSeconds(value) {
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 1 && seconds <= 60) {
+      return seconds;
+    }
+    return DEFAULT_SETTINGS.autoDismissSeconds;
   }
 
   function validateSettings(settings, requireToken) {

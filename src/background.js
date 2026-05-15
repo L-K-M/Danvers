@@ -9,6 +9,7 @@
     defaultListId: "",
     showListSelector: true,
     autoDismiss: true,
+    autoDismissSeconds: 5,
     popupPosition: "bottom-right",
     allowHttp: false,
   };
@@ -189,6 +190,7 @@
         preferences: {
           showListSelector: settings.showListSelector,
           autoDismiss: settings.autoDismiss,
+          autoDismissSeconds: settings.autoDismissSeconds,
           defaultListId: settings.defaultListId,
         },
         autoListResult,
@@ -263,6 +265,7 @@
       secondaryServerUrl: settings.secondaryServerUrl,
       showListSelector: settings.showListSelector,
       autoDismiss: settings.autoDismiss,
+      autoDismissSeconds: settings.autoDismissSeconds,
       hasDefaultList: Boolean(settings.defaultListId),
     };
   }
@@ -287,6 +290,7 @@
         typeof stored.defaultListId === "string" ? stored.defaultListId : "",
       showListSelector: stored.showListSelector !== false,
       autoDismiss: stored.autoDismiss !== false,
+      autoDismissSeconds: normalizeAutoDismissSeconds(stored.autoDismissSeconds),
       popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
     };
@@ -302,6 +306,14 @@
       return position;
     }
     return DEFAULT_SETTINGS.popupPosition;
+  }
+
+  function normalizeAutoDismissSeconds(value) {
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 1 && seconds <= 60) {
+      return seconds;
+    }
+    return DEFAULT_SETTINGS.autoDismissSeconds;
   }
 
   function ensureConfigured(settings) {

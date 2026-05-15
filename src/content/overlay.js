@@ -8,7 +8,8 @@
 
   const ext = typeof browser !== "undefined" ? browser : chrome;
   const HOST_ID = "danvers-karakeep-overlay-host";
-  const AUTO_DISMISS_MS = 5000;
+  const DEFAULT_AUTO_DISMISS_SECONDS = 5;
+  const FADE_OUT_MS = 180;
   const state = {
     requestId: "",
     url: "",
@@ -27,6 +28,7 @@
     listError: "",
     showListSelector: true,
     autoDismiss: true,
+    autoDismissMs: DEFAULT_AUTO_DISMISS_SECONDS * 1000,
     defaultListId: "",
     popupPosition: "bottom-right",
     interacted: false,
@@ -119,6 +121,7 @@
       alreadyExists: Boolean(response.alreadyExists),
       showListSelector: preferences.showListSelector !== false,
       autoDismiss: preferences.autoDismiss !== false,
+      autoDismissMs: normalizeAutoDismissMs(preferences.autoDismissSeconds),
       defaultListId: preferences.defaultListId || "",
       listMessage:
         autoListResult && autoListResult.ok
@@ -257,8 +260,8 @@
     }
 
     const elapsed = Math.max(0, Date.now() - state.dismissStartedAt);
-    const progress = Math.min(100, (elapsed / AUTO_DISMISS_MS) * 100);
-    const remaining = Math.max(1, AUTO_DISMISS_MS - elapsed);
+    const progress = Math.min(100, (elapsed / state.autoDismissMs) * 100);
+    const remaining = Math.max(1, state.autoDismissMs - elapsed);
 
     return `<div class="dismiss-progress" aria-hidden="true"><div class="dismiss-progress-bar" style="width: ${progress}%; animation-duration: ${remaining}ms;"></div></div>`;
   }
@@ -346,8 +349,8 @@
     const retrySave = shadow.querySelector('[data-action="retry-save"]');
     if (retrySave) {
       retrySave.addEventListener("click", () => {
-    state.interacted = true;
-    clearDismissTimer();
+        state.interacted = true;
+        clearDismissTimer();
         saveCurrentPage(state.requestId);
       });
     }
@@ -396,6 +399,14 @@
     shadow = null;
   }
 
+  function fadeOutAndCloseOverlay() {
+    if (!host) {
+      return;
+    }
+    host.dataset.closing = "true";
+    setTimeout(closeOverlay, FADE_OUT_MS);
+  }
+
   function normalizePopupPosition(position) {
     if (
       position === "top-left" ||
@@ -426,8 +437,8 @@
 
     state.dismissStartedAt = Date.now();
     state.dismissTimer = setTimeout(() => {
-      closeOverlay();
-    }, AUTO_DISMISS_MS);
+      fadeOutAndCloseOverlay();
+    }, state.autoDismissMs);
     render();
   }
 
@@ -437,6 +448,9 @@
       state.dismissTimer = null;
     }
     state.dismissStartedAt = 0;
+    if (host) {
+      delete host.dataset.closing;
+    }
   }
 
   function sendMessage(message) {
@@ -444,6 +458,14 @@
       ok: false,
       error: error && error.message ? error.message : String(error),
     }));
+  }
+
+  function normalizeAutoDismissMs(value) {
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 1 && seconds <= 60) {
+      return seconds * 1000;
+    }
+    return DEFAULT_AUTO_DISMISS_SECONDS * 1000;
   }
 
   function escapeHtml(value) {
@@ -465,6 +487,9 @@
       }
       * {
         box-sizing: border-box;
+      }
+      :host([data-closing="true"]) .panel {
+        animation: fade-out ${FADE_OUT_MS}ms ease forwards;
       }
       .panel {
         position: relative;
@@ -644,6 +669,16 @@
       }
       @keyframes dismiss-progress {
         to { width: 100%; }
+      }
+      @keyframes fade-out {
+        from {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(6px) scale(0.98);
+        }
       }
       @media (max-width: 360px) {
         .list-row,
