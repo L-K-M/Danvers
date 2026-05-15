@@ -70,6 +70,12 @@ form {
   font-weight: 700;
 }
 
+.field small {
+  color: #9fa8bd;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 input[type="url"],
 input[type="password"],
 select {

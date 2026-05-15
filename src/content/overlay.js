@@ -99,7 +99,10 @@
 
     const preferences = response.preferences || {};
     const autoListResult = response.autoListResult || null;
-    const baseDetail = response.alreadyExists ? "Already saved in Karakeep." : "Saved to Karakeep.";
+    const serverDetail = response.server ? ` via ${response.server.label}` : "";
+    const baseDetail = response.alreadyExists
+      ? `Already saved in Karakeep${serverDetail}.`
+      : `Saved to Karakeep${serverDetail}.`;
     const autoListError =
       autoListResult && !autoListResult.ok
         ? `Default List failed: ${autoListResult.message}`
@@ -112,7 +115,10 @@
       showListSelector: preferences.showListSelector !== false,
       autoDismiss: preferences.autoDismiss !== false,
       defaultListId: preferences.defaultListId || "",
-      listMessage: autoListResult && autoListResult.ok ? "Added to default List." : "",
+      listMessage:
+        autoListResult && autoListResult.ok
+          ? `Added to default List via ${autoListResult.serverLabel}.`
+          : "",
       listError: autoListError,
     });
 
@@ -184,7 +190,9 @@
 
     setState({
       addingList: false,
-      listMessage: selected ? `Added to ${selected.path}.` : "Added to List.",
+      listMessage: selected
+        ? `Added to ${selected.path}${response.server ? ` via ${response.server.label}` : ""}.`
+        : `Added to List${response.server ? ` via ${response.server.label}` : ""}.`,
       listError: "",
     });
   }

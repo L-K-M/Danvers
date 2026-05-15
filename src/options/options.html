@@ -19,8 +19,15 @@
 
         <form id="settings-form">
           <label class="field">
-            <span>Karakeep server URL</span>
-            <input id="serverUrl" type="url" placeholder="https://cloud.karakeep.app" autocomplete="url" required>
+            <span>Primary Karakeep server URL</span>
+            <input id="primaryServerUrl" type="url" placeholder="http://192.168.1.50:3000" autocomplete="url" required>
+            <small>Used first. This can be your local Wi-Fi address.</small>
+          </label>
+
+          <label class="field">
+            <span>Secondary Karakeep server URL</span>
+            <input id="secondaryServerUrl" type="url" placeholder="https://karakeep.example.ts.net" autocomplete="url">
+            <small>Used only when the primary server cannot be reached or returns a server error.</small>
           </label>
 
           <label class="field">

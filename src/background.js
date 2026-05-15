@@ -3,7 +3,8 @@
 
   const ext = typeof browser !== "undefined" ? browser : chrome;
   const DEFAULT_SETTINGS = {
-    serverUrl: "https://cloud.karakeep.app",
+    primaryServerUrl: "https://cloud.karakeep.app",
+    secondaryServerUrl: "",
     apiToken: "",
     defaultListId: "",
     showListSelector: true,
@@ -142,7 +143,7 @@
         throw userError("This page cannot be saved. Only HTTP/HTTPS pages are supported.");
       }
 
-      const bookmark = await karakeepRequest(
+      const bookmarkResponse = await karakeepRequest(
         settings,
         "bookmarks.createBookmark",
         {
@@ -153,6 +154,7 @@
         },
         SAVE_TIMEOUT_MS,
       );
+      const bookmark = bookmarkResponse.data;
 
       if (!bookmark || !bookmark.id) {
         throw userError("Karakeep saved the link but returned an unexpected response.");
@@ -161,13 +163,17 @@
       let autoListResult = null;
       if (settings.defaultListId) {
         try {
-          await karakeepRequest(
+          const autoListResponse = await karakeepRequest(
             settings,
             "lists.addToList",
             { bookmarkId: bookmark.id, listId: settings.defaultListId },
             LIST_TIMEOUT_MS,
           );
-          autoListResult = { ok: true, listId: settings.defaultListId };
+          autoListResult = {
+            ok: true,
+            listId: settings.defaultListId,
+            serverLabel: autoListResponse.server.label,
+          };
         } catch (error) {
           autoListResult = { ok: false, message: normalizeErrorMessage(error) };
         }
@@ -183,6 +189,7 @@
           defaultListId: settings.defaultListId,
         },
         autoListResult,
+        server: bookmarkResponse.server,
       };
     } catch (error) {
       return { ok: false, error: normalizeErrorMessage(error) };
@@ -194,19 +201,20 @@
       const settings = await getSettings();
       ensureConfigured(settings);
 
-      const result = await karakeepRequest(
+      const response = await karakeepRequest(
         settings,
         "lists.list",
         undefined,
         LIST_TIMEOUT_MS,
         "GET",
       );
+      const result = response.data;
       const lists = Array.isArray(result.lists) ? result.lists : [];
       const editableLists = buildListPaths(lists).filter(
         (list) => list.userRole !== "viewer" && list.userRole !== "public",
       );
 
-      return { ok: true, lists: editableLists };
+      return { ok: true, lists: editableLists, server: response.server };
     } catch (error) {
       return { ok: false, error: normalizeErrorMessage(error) };
     }
@@ -221,14 +229,14 @@
       const settings = await getSettings();
       ensureConfigured(settings);
 
-      await karakeepRequest(
+      const response = await karakeepRequest(
         settings,
         "lists.addToList",
         { bookmarkId: payload.bookmarkId, listId: payload.listId },
         LIST_TIMEOUT_MS,
       );
 
-      return { ok: true };
+      return { ok: true, server: response.server };
     } catch (error) {
       return { ok: false, error: normalizeErrorMessage(error) };
     }
@@ -247,8 +255,9 @@
     const settings = await getSettings();
     return {
       ok: true,
-      configured: Boolean(settings.serverUrl && settings.apiToken),
-      serverUrl: settings.serverUrl,
+      configured: Boolean(settings.primaryServerUrl && settings.apiToken),
+      primaryServerUrl: settings.primaryServerUrl,
+      secondaryServerUrl: settings.secondaryServerUrl,
       showListSelector: settings.showListSelector,
       autoDismiss: settings.autoDismiss,
       hasDefaultList: Boolean(settings.defaultListId),
@@ -256,11 +265,20 @@
   }
 
   async function getSettings() {
-    const stored = await ext.storage.local.get(Object.keys(DEFAULT_SETTINGS));
+    const stored = await ext.storage.local.get([
+      ...Object.keys(DEFAULT_SETTINGS),
+      "serverUrl",
+    ]);
+    const primaryServerUrl = normalizeServerUrl(
+      stored.primaryServerUrl || stored.serverUrl || DEFAULT_SETTINGS.primaryServerUrl,
+    );
+    const secondaryServerUrl = normalizeServerUrl(stored.secondaryServerUrl || "");
+
     return {
       ...DEFAULT_SETTINGS,
       ...stored,
-      serverUrl: normalizeServerUrl(stored.serverUrl || DEFAULT_SETTINGS.serverUrl),
+      primaryServerUrl,
+      secondaryServerUrl,
       apiToken: typeof stored.apiToken === "string" ? stored.apiToken.trim() : "",
       defaultListId:
         typeof stored.defaultListId === "string" ? stored.defaultListId : "",
@@ -271,25 +289,27 @@
   }
 
   function ensureConfigured(settings) {
-    if (!settings.serverUrl) {
-      throw userError("Karakeep server URL is not configured.");
+    if (!settings.primaryServerUrl) {
+      throw userError("Primary Karakeep server URL is not configured.");
     }
     if (!settings.apiToken) {
       throw userError("Karakeep API token is not configured.");
     }
-    validateServerUrl(settings.serverUrl, settings.allowHttp);
+    getConfiguredServers(settings).forEach((server) => {
+      validateServerUrl(server.url, settings.allowHttp, server.label);
+    });
   }
 
   function normalizeServerUrl(url) {
     return String(url || "").trim().replace(/\/+$/, "");
   }
 
-  function validateServerUrl(url, allowHttp) {
+  function validateServerUrl(url, allowHttp, label) {
     let parsed;
     try {
       parsed = new URL(url);
     } catch (_error) {
-      throw userError("Karakeep server URL is invalid.");
+      throw userError(`${label} Karakeep server URL is invalid.`);
     }
 
     if (parsed.protocol === "https:") {
@@ -300,12 +320,49 @@
       return;
     }
 
-    throw userError("Karakeep server URL must use HTTPS unless HTTP is enabled in settings.");
+    throw userError(`${label} Karakeep server URL must use HTTPS unless HTTP is enabled in settings.`);
   }
 
   async function karakeepRequest(settings, procedure, input, timeoutMs, method) {
+    const servers = getConfiguredServers(settings);
+    let primaryError = null;
+
+    for (let i = 0; i < servers.length; i += 1) {
+      const server = servers[i];
+      try {
+        return {
+          data: await karakeepRequestToServer(
+            settings,
+            server,
+            procedure,
+            input,
+            timeoutMs,
+            method,
+          ),
+          server,
+          usedFallback: i > 0,
+        };
+      } catch (error) {
+        if (i === 0) {
+          primaryError = error;
+        }
+
+        if (!shouldFallback(error)) {
+          throw error;
+        }
+
+        if (i === servers.length - 1) {
+          throw userError(formatAllServersFailedMessage(primaryError, error, i > 0));
+        }
+      }
+    }
+
+    throw userError("No Karakeep server URL is configured.");
+  }
+
+  async function karakeepRequestToServer(settings, server, procedure, input, timeoutMs, method) {
     const requestMethod = method || "POST";
-    const baseUrl = `${settings.serverUrl}/api/trpc/${procedure}`;
+    const baseUrl = `${server.url}/api/trpc/${procedure}`;
     const batchInput = {
       "0": {
         json: input || null,
@@ -337,6 +394,29 @@
     }
 
     return unwrapTrpcResponse(parsed);
+  }
+
+  function getConfiguredServers(settings) {
+    const servers = [{ label: "Primary", url: settings.primaryServerUrl }];
+    if (
+      settings.secondaryServerUrl &&
+      settings.secondaryServerUrl !== settings.primaryServerUrl
+    ) {
+      servers.push({ label: "Secondary", url: settings.secondaryServerUrl });
+    }
+    return servers;
+  }
+
+  function shouldFallback(error) {
+    return !error || error.shouldNotFallback !== true;
+  }
+
+  function formatAllServersFailedMessage(primaryError, finalError, triedSecondary) {
+    if (!triedSecondary || !primaryError || primaryError === finalError) {
+      return normalizeErrorMessage(finalError || primaryError);
+    }
+
+    return `Primary failed: ${normalizeErrorMessage(primaryError)} Secondary failed: ${normalizeErrorMessage(finalError)}`;
   }
 
   async function fetchWithTimeout(url, options, timeoutMs) {
@@ -410,7 +490,13 @@
     const message = extractErrorMessage(parsed) || text || `Karakeep request failed with HTTP ${response.status}.`;
 
     if (response.status === 401 || response.status === 403) {
-      return userError("Karakeep rejected the API token. Check extension settings.");
+      return userError("Karakeep rejected the API token. Check extension settings.", {
+        shouldNotFallback: true,
+      });
+    }
+
+    if (response.status >= 400 && response.status < 500) {
+      return userError(message, { shouldNotFallback: true });
     }
 
     return userError(message);
@@ -480,9 +566,12 @@
     return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   }
 
-  function userError(message) {
+  function userError(message, options) {
     const error = new Error(message);
     error.isUserError = true;
+    if (options && Object.prototype.hasOwnProperty.call(options, "shouldNotFallback")) {
+      error.shouldNotFallback = options.shouldNotFallback;
+    }
     return error;
   }
 

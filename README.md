@@ -5,10 +5,13 @@ Danvers is an alternative Karakeep browser extension mainly aimed at mobile Fire
 ## Configure
 
 1. Open the extension settings page.
-2. Set your Karakeep server URL.
-3. Paste a Karakeep API token.
-4. Use `Test Connection` to verify the token and load editable Lists.
-5. Optionally choose a default List.
+2. Set your primary Karakeep server URL. This can be the local Wi-Fi address of your Karakeep instance.
+3. Optionally set a secondary Karakeep server URL. This can be a Tailscale or public address used when the primary address is unavailable.
+4. Paste a Karakeep API token.
+5. Use `Test Connection` to verify the token and load editable Lists.
+6. Optionally choose a default List.
+
+Danvers always tries the primary server first. If the primary request fails because the server cannot be reached or returns a server-side error, it retries the same request against the secondary server. Authentication and validation errors do not fall back because the same token/request is expected to fail on both addresses.
 
 ## Build
 

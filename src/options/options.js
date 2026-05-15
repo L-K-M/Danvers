@@ -3,7 +3,8 @@
 
   const ext = typeof browser !== "undefined" ? browser : chrome;
   const DEFAULT_SETTINGS = {
-    serverUrl: "https://cloud.karakeep.app",
+    primaryServerUrl: "https://cloud.karakeep.app",
+    secondaryServerUrl: "",
     apiToken: "",
     defaultListId: "",
     showListSelector: true,
@@ -12,7 +13,8 @@
   };
 
   const form = document.getElementById("settings-form");
-  const serverUrlInput = document.getElementById("serverUrl");
+  const primaryServerUrlInput = document.getElementById("primaryServerUrl");
+  const secondaryServerUrlInput = document.getElementById("secondaryServerUrl");
   const apiTokenInput = document.getElementById("apiToken");
   const allowHttpInput = document.getElementById("allowHttp");
   const showListSelectorInput = document.getElementById("showListSelector");
@@ -29,7 +31,8 @@
 
   async function init() {
     const settings = await getSettings();
-    serverUrlInput.value = settings.serverUrl;
+    primaryServerUrlInput.value = settings.primaryServerUrl;
+    secondaryServerUrlInput.value = settings.secondaryServerUrl;
     apiTokenInput.value = settings.apiToken;
     allowHttpInput.checked = settings.allowHttp;
     showListSelectorInput.checked = settings.showListSelector;
@@ -61,7 +64,7 @@
       if (!response || !response.ok) {
         throw new Error(response && response.error ? response.error : "Connection test failed.");
       }
-      setStatus(`Connected. Found ${response.lists.length} editable List${response.lists.length === 1 ? "" : "s"}.`, "success");
+      setStatus(`Connected via ${response.server.label}. Found ${response.lists.length} editable List${response.lists.length === 1 ? "" : "s"}.`, "success");
       renderListOptions(response.lists, settings.defaultListId);
     } catch (error) {
       setStatus(error.message || String(error), "error");
@@ -95,7 +98,7 @@
 
       renderListOptions(response.lists, selectedListId);
       if (showResult) {
-        setStatus(`Loaded ${response.lists.length} editable List${response.lists.length === 1 ? "" : "s"}.`, "success");
+        setStatus(`Loaded via ${response.server.label}: ${response.lists.length} editable List${response.lists.length === 1 ? "" : "s"}.`, "success");
       }
     } catch (error) {
       setStatus(error.message || String(error), "error");
@@ -132,11 +135,19 @@
   }
 
   async function getSettings() {
-    const stored = await ext.storage.local.get(Object.keys(DEFAULT_SETTINGS));
+    const stored = await ext.storage.local.get([
+      ...Object.keys(DEFAULT_SETTINGS),
+      "serverUrl",
+    ]);
+    const primaryServerUrl = normalizeServerUrl(
+      stored.primaryServerUrl || stored.serverUrl || DEFAULT_SETTINGS.primaryServerUrl,
+    );
+
     return {
       ...DEFAULT_SETTINGS,
       ...stored,
-      serverUrl: normalizeServerUrl(stored.serverUrl || DEFAULT_SETTINGS.serverUrl),
+      primaryServerUrl,
+      secondaryServerUrl: normalizeServerUrl(stored.secondaryServerUrl || ""),
       apiToken: typeof stored.apiToken === "string" ? stored.apiToken : "",
       defaultListId:
         typeof stored.defaultListId === "string" ? stored.defaultListId : "",
@@ -148,7 +159,8 @@
 
   function readFormSettings() {
     return {
-      serverUrl: normalizeServerUrl(serverUrlInput.value),
+      primaryServerUrl: normalizeServerUrl(primaryServerUrlInput.value),
+      secondaryServerUrl: normalizeServerUrl(secondaryServerUrlInput.value),
       apiToken: apiTokenInput.value.trim(),
       defaultListId: defaultListSelect.value,
       showListSelector: showListSelectorInput.checked,
@@ -158,23 +170,30 @@
   }
 
   function validateSettings(settings, requireToken) {
-    if (!settings.serverUrl) {
-      throw new Error("Karakeep server URL is required.");
+    if (!settings.primaryServerUrl) {
+      throw new Error("Primary Karakeep server URL is required.");
     }
 
-    let parsed;
-    try {
-      parsed = new URL(settings.serverUrl);
-    } catch (_error) {
-      throw new Error("Karakeep server URL is invalid.");
-    }
-
-    if (parsed.protocol !== "https:" && !(settings.allowHttp && parsed.protocol === "http:")) {
-      throw new Error("Karakeep server URL must use HTTPS unless HTTP is enabled.");
+    validateServerUrl(settings.primaryServerUrl, settings.allowHttp, "Primary");
+    if (settings.secondaryServerUrl) {
+      validateServerUrl(settings.secondaryServerUrl, settings.allowHttp, "Secondary");
     }
 
     if (requireToken && !settings.apiToken) {
       throw new Error("API token is required for this action.");
+    }
+  }
+
+  function validateServerUrl(url, allowHttp, label) {
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch (_error) {
+      throw new Error(`${label} Karakeep server URL is invalid.`);
+    }
+
+    if (parsed.protocol !== "https:" && !(allowHttp && parsed.protocol === "http:")) {
+      throw new Error(`${label} Karakeep server URL must use HTTPS unless HTTP is enabled.`);
     }
   }
 
