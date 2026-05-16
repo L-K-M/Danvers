@@ -565,7 +565,7 @@
         all: initial;
         color-scheme: dark;
         pointer-events: auto;
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
       }
       * {
         box-sizing: border-box;
