@@ -2,8 +2,11 @@
 
 Danvers is an alternative Karakeep browser extension mainly aimed at mobile Firefox-based browsers like Iceraven.
 
-## Configure
+<img src="screenshot.png" alt="Screenshot of Danvers extension in action." width="400">
 
+## Setup
+
+0. Install the extension in your browser (see "Permanent Installation" below).
 1. Open the extension settings page.
 2. Set your primary Karakeep server URL. This can be the local Wi-Fi address of your Karakeep instance.
 3. Optionally set a secondary Karakeep server URL. This can be a Tailscale or public address used when the primary address is unavailable.
@@ -53,6 +56,8 @@ Iceraven:
 
 ## Permanent Installation
 
+Before signing, set `browser_specific_settings.gecko.id` in `manifest.json` to a unique add-on id that you control.
+
 For permanent Firefox/Iceraven installation, the extension must be signed by Mozilla. `web-ext` is Mozilla's official command-line tool for building, linting, running, and signing extensions.
 
 Install `web-ext`:
@@ -67,21 +72,13 @@ Create or use a Mozilla Add-ons developer account, then generate API credentials
 https://addons.mozilla.org/en-US/developers/addon/api/key/
 ```
 
-Before signing, set `browser_specific_settings.gecko.id` in `manifest.json` to a unique add-on id that you control.
+Copy credentials into build.sh.
 
-Build with `web-ext`:
-
-```bash
-web-ext build --overwrite-dest
-```
-
-Sign an unlisted build:
+Run `build.sh` to build and sign the extension:
 
 ```bash
-web-ext sign \
-  --api-key="$AMO_JWT_ISSUER" \
-  --api-secret="$AMO_JWT_SECRET" \
-  --channel="unlisted"
+chmod +x build.sh
+./build.sh
 ```
 
 This creates build artifacts in `web-ext-artifacts/`, including a signed `.xpi` if signing succeeds.

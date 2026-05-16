@@ -13,7 +13,6 @@ dist/
 *.xpi
 *.zip
 .amo-upload-uuid
-build.sh
 
 # Logs and temp output
 *.log
