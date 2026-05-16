@@ -38,7 +38,6 @@
   };
 
   let host = null;
-  let shadow = null;
 
   ext.runtime.onMessage.addListener((message) => {
     if (!message || message.type !== "SHOW_OVERLAY") {
@@ -232,20 +231,22 @@
 
   function ensureOverlay() {
     host = document.getElementById(HOST_ID);
+    if (host && host.shadowRoot) {
+      host.remove();
+      host = null;
+    }
+
     if (!host) {
       host = document.createElement("div");
       host.id = HOST_ID;
       document.documentElement.appendChild(host);
     }
 
-    if (!shadow || shadow.host !== host) {
-      shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
-    }
     applyHostPosition();
   }
 
   function render() {
-    if (!shadow) {
+    if (!host) {
       return;
     }
 
@@ -253,8 +254,7 @@
     const statusClass = state.status === "error" ? "danger" : state.status === "success" ? "success" : "saving";
     const statusText = getStatusText();
 
-    shadow.innerHTML = `
-      <style>${styles()}</style>
+    host.innerHTML = `
       <section class="panel" role="status" aria-live="polite">
         ${renderDismissProgress()}
         <div class="header">
@@ -278,6 +278,7 @@
     `;
 
     bindEvents();
+    syncDismissProgress();
   }
 
   function getStatusText() {
@@ -297,11 +298,7 @@
       return "";
     }
 
-    const elapsed = Math.max(0, Date.now() - state.dismissStartedAt);
-    const progress = Math.min(100, (elapsed / state.autoDismissMs) * 100);
-    const remaining = Math.max(1, state.autoDismissMs - elapsed);
-
-    return `<div class="dismiss-progress" aria-hidden="true"><div class="dismiss-progress-bar" style="width: ${progress}%; animation-duration: ${remaining}ms;"></div></div>`;
+    return `<div class="dismiss-progress" aria-hidden="true"><div class="dismiss-progress-bar"></div></div>`;
   }
 
   function renderUrl() {
@@ -403,16 +400,16 @@
   }
 
   function bindEvents() {
-    const panel = shadow.querySelector(".panel");
+    const panel = host.querySelector(".panel");
     if (panel) {
       panel.addEventListener("pointerdown", cancelDismissFromInteraction);
       panel.addEventListener("click", cancelDismissFromInteraction);
     }
 
-    const closeButtons = shadow.querySelectorAll('[data-action="close"]');
+    const closeButtons = host.querySelectorAll('[data-action="close"]');
     closeButtons.forEach((button) => button.addEventListener("click", closeOverlay));
 
-    const retrySave = shadow.querySelector('[data-action="retry-save"]');
+    const retrySave = host.querySelector('[data-action="retry-save"]');
     if (retrySave) {
       retrySave.addEventListener("click", () => {
         state.interacted = true;
@@ -421,7 +418,7 @@
       });
     }
 
-    const retryLists = shadow.querySelector('[data-action="retry-lists"]');
+    const retryLists = host.querySelector('[data-action="retry-lists"]');
     if (retryLists) {
       retryLists.addEventListener("click", () => {
         state.interacted = true;
@@ -429,7 +426,7 @@
       });
     }
 
-    const optionsButton = shadow.querySelector('[data-action="options"]');
+    const optionsButton = host.querySelector('[data-action="options"]');
     if (optionsButton) {
       optionsButton.addEventListener("click", () => {
         state.interacted = true;
@@ -437,7 +434,7 @@
       });
     }
 
-    const select = shadow.querySelector('[data-action="select-list"]');
+    const select = host.querySelector('[data-action="select-list"]');
     if (select) {
       select.addEventListener("change", (event) => {
         state.interacted = true;
@@ -448,7 +445,7 @@
       });
     }
 
-    const listToggles = shadow.querySelectorAll('[data-action="toggle-list"]');
+    const listToggles = host.querySelectorAll('[data-action="toggle-list"]');
     listToggles.forEach((toggle) => {
       toggle.addEventListener("change", (event) => {
         setListSelection(event.target.value, event.target.checked);
@@ -467,14 +464,13 @@
       host.remove();
     }
     host = null;
-    shadow = null;
   }
 
   function cancelDismissFromInteraction() {
     if (state.dismissTimer) {
       state.interacted = true;
       clearDismissTimer();
-      const progress = shadow && shadow.querySelector(".dismiss-progress");
+      const progress = host && host.querySelector(".dismiss-progress");
       if (progress) {
         progress.remove();
       }
@@ -535,6 +531,27 @@
     }
   }
 
+  function syncDismissProgress() {
+    const bar = host && host.querySelector(".dismiss-progress-bar");
+    if (!bar || !state.dismissStartedAt) {
+      return;
+    }
+
+    const elapsed = Math.max(0, Date.now() - state.dismissStartedAt);
+    const progress = Math.min(1, elapsed / state.autoDismissMs);
+    const remaining = Math.max(1, state.autoDismissMs - elapsed);
+
+    if (typeof bar.animate !== "function") {
+      bar.classList.add("complete");
+      return;
+    }
+
+    bar.animate(
+      [{ transform: `scaleX(${progress})` }, { transform: "scaleX(1)" }],
+      { duration: remaining, easing: "linear", fill: "forwards" }
+    );
+  }
+
   function sendMessage(message) {
     return ext.runtime.sendMessage(message).catch((error) => ({
       ok: false,
@@ -559,235 +576,4 @@
       .replace(/'/g, "&#039;");
   }
 
-  function styles() {
-    return `
-      :host {
-        all: initial;
-        color-scheme: dark;
-        pointer-events: auto;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      :host([data-closing="true"]) .panel {
-        animation: fade-out ${FADE_OUT_MS}ms ease forwards;
-      }
-      .panel {
-        position: relative;
-        width: 100%;
-        max-width: 420px;
-        margin: 0 auto;
-        border: 1px solid rgba(255, 255, 255, 0.16);
-        border-radius: 18px;
-        background: rgba(18, 20, 26, 0.96);
-        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.4);
-        color: #f7f7fb;
-        overflow: hidden;
-        backdrop-filter: blur(14px);
-      }
-      .dismiss-progress {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.08);
-        overflow: hidden;
-      }
-      .dismiss-progress-bar {
-        height: 100%;
-        background: #5ff0a8;
-        animation-name: dismiss-progress;
-        animation-timing-function: linear;
-        animation-fill-mode: forwards;
-      }
-      .header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 16px 16px 10px;
-      }
-      .header-actions {
-        display: flex;
-        flex: 0 0 auto;
-        gap: 8px;
-      }
-      .eyebrow {
-        color: #9fa8bd;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-      .title {
-        margin-top: 2px;
-        font-size: 18px;
-        font-weight: 750;
-        line-height: 1.2;
-      }
-      .icon-button {
-        min-width: 44px;
-        min-height: 44px;
-        border: 0;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.08);
-        color: #f7f7fb;
-        font: inherit;
-        font-size: 20px;
-        line-height: 1;
-      }
-      .status {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 0 16px 12px;
-        padding: 12px;
-        border-radius: 14px;
-        font-size: 15px;
-        line-height: 1.35;
-      }
-      .status.saving {
-        background: rgba(105, 117, 255, 0.16);
-        color: #dfe3ff;
-      }
-      .status.success {
-        background: rgba(43, 184, 116, 0.16);
-        color: #c9f7df;
-      }
-      .status.danger {
-        background: rgba(255, 91, 91, 0.16);
-        color: #ffd1d1;
-      }
-      .spinner {
-        width: 16px;
-        height: 16px;
-        flex: 0 0 auto;
-        border: 2px solid rgba(255, 255, 255, 0.25);
-        border-top-color: #ffffff;
-        border-radius: 999px;
-        animation: spin 0.8s linear infinite;
-      }
-      .url {
-        margin: 0 16px 12px;
-        color: #aeb6c8;
-        font-size: 12px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .actions {
-        display: flex;
-        gap: 8px;
-        padding: 0 16px 14px;
-      }
-      .button,
-      .select {
-        min-height: 44px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.08);
-        color: #f7f7fb;
-        font: inherit;
-        font-size: 14px;
-      }
-      .button {
-        padding: 0 14px;
-        font-weight: 700;
-      }
-      .button.primary {
-        border-color: rgba(112, 122, 255, 0.85);
-        background: #707aff;
-        color: #ffffff;
-      }
-      .button.quiet {
-        margin-left: auto;
-      }
-      .button:disabled {
-        opacity: 0.55;
-      }
-      .list-box {
-        margin: 0 16px 16px;
-        padding: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.06);
-        color: #f7f7fb;
-        font-size: 14px;
-      }
-      .list-box.muted {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #aeb6c8;
-      }
-      .list-box.error {
-        color: #ffd1d1;
-      }
-      .success-text {
-        color: #c9f7df;
-      }
-      .label {
-        display: block;
-        margin-bottom: 8px;
-        color: #aeb6c8;
-        font-size: 12px;
-        font-weight: 750;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-      }
-      .list-checks {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .list-check-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-height: 44px;
-      }
-      .list-check-row input {
-        width: 20px;
-        height: 20px;
-        flex: 0 0 auto;
-        accent-color: #707aff;
-      }
-      .list-check-row span {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .select {
-        min-width: 0;
-        flex: 1;
-        padding: 0 10px;
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-      @keyframes dismiss-progress {
-        to { width: 100%; }
-      }
-      @keyframes fade-out {
-        from {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-        to {
-          opacity: 0;
-          transform: translateY(6px) scale(0.98);
-        }
-      }
-      @media (max-width: 360px) {
-        .actions {
-          flex-direction: column;
-        }
-        .button.quiet {
-          margin-left: 0;
-        }
-      }
-    `;
-  }
 })();

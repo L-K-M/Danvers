@@ -4,7 +4,242 @@
   inset: auto 12px max(12px, env(safe-area-inset-bottom)) 12px !important;
   z-index: 2147483647 !important;
   pointer-events: auto !important;
+  color-scheme: dark !important;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif !important;
+}
+
+#danvers-karakeep-overlay-host,
+#danvers-karakeep-overlay-host * {
+  box-sizing: border-box;
+}
+
+#danvers-karakeep-overlay-host[data-closing="true"] .panel {
+  animation: danvers-karakeep-fade-out 180ms ease forwards;
+}
+
+#danvers-karakeep-overlay-host .panel {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  background: rgba(18, 20, 26, 0.96);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.4);
+  color: #f7f7fb;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+}
+
+#danvers-karakeep-overlay-host .dismiss-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+#danvers-karakeep-overlay-host .dismiss-progress-bar {
+  width: 100%;
+  height: 100%;
+  background: #5ff0a8;
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+#danvers-karakeep-overlay-host .dismiss-progress-bar.complete {
+  transform: scaleX(1);
+}
+
+#danvers-karakeep-overlay-host .header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 10px;
+}
+
+#danvers-karakeep-overlay-host .header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
+#danvers-karakeep-overlay-host .eyebrow {
+  color: #9fa8bd;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#danvers-karakeep-overlay-host .title {
+  margin-top: 2px;
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+#danvers-karakeep-overlay-host .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7f7fb;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+}
+
+#danvers-karakeep-overlay-host .status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 12px;
+  padding: 12px;
+  border-radius: 14px;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+#danvers-karakeep-overlay-host .status.saving {
+  background: rgba(105, 117, 255, 0.16);
+  color: #dfe3ff;
+}
+
+#danvers-karakeep-overlay-host .status.success {
+  background: rgba(43, 184, 116, 0.16);
+  color: #c9f7df;
+}
+
+#danvers-karakeep-overlay-host .status.danger {
+  background: rgba(255, 91, 91, 0.16);
+  color: #ffd1d1;
+}
+
+#danvers-karakeep-overlay-host .spinner {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #ffffff;
+  border-radius: 999px;
+  animation: danvers-karakeep-spin 0.8s linear infinite;
+}
+
+#danvers-karakeep-overlay-host .url {
+  margin: 0 16px 12px;
+  color: #aeb6c8;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#danvers-karakeep-overlay-host .actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+
+#danvers-karakeep-overlay-host .button,
+#danvers-karakeep-overlay-host .select {
+  min-height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7f7fb;
+  font: inherit;
+  font-size: 14px;
+}
+
+#danvers-karakeep-overlay-host .button {
+  padding: 0 14px;
+  font-weight: 700;
+}
+
+#danvers-karakeep-overlay-host .button.primary {
+  border-color: rgba(112, 122, 255, 0.85);
+  background: #707aff;
+  color: #ffffff;
+}
+
+#danvers-karakeep-overlay-host .button.quiet {
+  margin-left: auto;
+}
+
+#danvers-karakeep-overlay-host .button:disabled {
+  opacity: 0.55;
+}
+
+#danvers-karakeep-overlay-host .list-box {
+  margin: 0 16px 16px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f7f7fb;
+  font-size: 14px;
+}
+
+#danvers-karakeep-overlay-host .list-box.muted {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #aeb6c8;
+}
+
+#danvers-karakeep-overlay-host .list-box.error {
+  color: #ffd1d1;
+}
+
+#danvers-karakeep-overlay-host .success-text {
+  color: #c9f7df;
+}
+
+#danvers-karakeep-overlay-host .label {
+  display: block;
+  margin-bottom: 8px;
+  color: #aeb6c8;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#danvers-karakeep-overlay-host .list-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#danvers-karakeep-overlay-host .list-check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+#danvers-karakeep-overlay-host .list-check-row input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  accent-color: #707aff;
+}
+
+#danvers-karakeep-overlay-host .list-check-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#danvers-karakeep-overlay-host .select {
+  min-width: 0;
+  flex: 1;
+  padding: 0 10px;
 }
 
 #danvers-karakeep-overlay-host[data-position="top-left"] {
@@ -57,5 +292,33 @@
     right: 18px !important;
     bottom: 18px !important;
     left: auto !important;
+  }
+}
+
+@media (max-width: 360px) {
+  #danvers-karakeep-overlay-host .actions {
+    flex-direction: column;
+  }
+
+  #danvers-karakeep-overlay-host .button.quiet {
+    margin-left: 0;
+  }
+}
+
+@keyframes danvers-karakeep-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes danvers-karakeep-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
   }
 }

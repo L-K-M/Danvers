@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Danvers",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Save the current page to Karakeep from an inline Iceraven-friendly overlay.",
   "permissions": [
     "activeTab",
