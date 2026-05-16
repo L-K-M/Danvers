@@ -15,6 +15,7 @@
   };
   const SAVE_TIMEOUT_MS = 30000;
   const LIST_TIMEOUT_MS = 20000;
+  const MAX_BOOKMARK_TITLE_LENGTH = 1000;
   const CONTENT_SCRIPT_PATH = "src/content/overlay.js";
   const CONTENT_CSS_PATH = "src/content/overlay.css";
 
@@ -146,6 +147,7 @@
 
       const tabUrl = payload && payload.url ? payload.url : sender.tab && sender.tab.url;
       const title = payload && payload.title ? payload.title : sender.tab && sender.tab.title;
+      const bookmarkTitle = normalizeBookmarkTitle(title);
 
       if (!isHttpPageUrl(tabUrl)) {
         throw userError("This page cannot be saved. Only HTTP/HTTPS pages are supported.");
@@ -157,7 +159,7 @@
         {
           type: "link",
           url: tabUrl,
-          title: title || undefined,
+          title: bookmarkTitle || undefined,
           source: "extension",
         },
         SAVE_TIMEOUT_MS,
@@ -526,13 +528,13 @@
         return null;
       }
       if (first.error) {
-        throw userError(first.error.message || "Karakeep API request failed.");
+        throw userError(unwrapTrpcErrorMessage(first.error));
       }
       return unwrapTrpcResult(first.result);
     }
 
     if (parsed && parsed.error) {
-      throw userError(parsed.error.message || "Karakeep API request failed.");
+      throw userError(unwrapTrpcErrorMessage(parsed.error));
     }
 
     if (parsed && Object.prototype.hasOwnProperty.call(parsed, "result")) {
@@ -578,13 +580,116 @@
     if (Array.isArray(parsed)) {
       return parsed.map(extractErrorMessage).find(Boolean) || "";
     }
-    if (parsed.error && parsed.error.message) {
-      return parsed.error.message;
+    if (parsed.error) {
+      const message = extractErrorMessage(parsed.error);
+      if (message) {
+        return message;
+      }
+    }
+    if (parsed.json) {
+      const message = extractErrorMessage(parsed.json);
+      if (message) {
+        return message;
+      }
+    }
+    if (parsed.data && parsed.data.zodError) {
+      const message = formatZodError(parsed.data.zodError);
+      if (message) {
+        return message;
+      }
+    }
+    if (parsed.zodError) {
+      const message = formatZodError(parsed.zodError);
+      if (message) {
+        return message;
+      }
     }
     if (parsed.message) {
-      return parsed.message;
+      const message = parseEmbeddedValidationMessage(parsed.message) || parsed.message;
+      return cleanupErrorMessage(message);
     }
     return "";
+  }
+
+  function normalizeBookmarkTitle(title) {
+    if (typeof title !== "string") {
+      return "";
+    }
+    return title.slice(0, MAX_BOOKMARK_TITLE_LENGTH);
+  }
+
+  function formatZodError(zodError) {
+    const messages = [];
+    const fieldErrors = zodError.fieldErrors || {};
+
+    Object.keys(fieldErrors).forEach((field) => {
+      const errors = Array.isArray(fieldErrors[field]) ? fieldErrors[field] : [];
+      errors.filter(Boolean).forEach((error) => {
+        messages.push(`${formatFieldName(field)}: ${cleanupErrorMessage(error)}`);
+      });
+    });
+
+    if (Array.isArray(zodError.formErrors)) {
+      zodError.formErrors.filter(Boolean).forEach((error) => {
+        messages.push(cleanupErrorMessage(error));
+      });
+    }
+
+    return messages.length ? `Karakeep rejected the request: ${messages.join(" ")}` : "";
+  }
+
+  function parseEmbeddedValidationMessage(message) {
+    if (typeof message !== "string") {
+      return "";
+    }
+
+    try {
+      const parsed = JSON.parse(message);
+      if (!Array.isArray(parsed)) {
+        return "";
+      }
+
+      const messages = parsed
+        .map((issue) => {
+          if (!issue || !issue.message) {
+            return "";
+          }
+          const path = Array.isArray(issue.path) ? issue.path.join(".") : "";
+          return path
+            ? `${formatFieldName(path)}: ${cleanupErrorMessage(issue.message)}`
+            : cleanupErrorMessage(issue.message);
+        })
+        .filter(Boolean);
+
+      return messages.length ? `Karakeep rejected the request: ${messages.join(" ")}` : "";
+    } catch (_error) {
+      return "";
+    }
+  }
+
+  function formatFieldName(field) {
+    return String(field || "field")
+      .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+      .replace(/[._-]+/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
+
+  function cleanupErrorMessage(message) {
+    return String(message || "")
+      .replace(/character\(s\)/g, "characters")
+      .replace(/string/i, "value")
+      .trim();
+  }
+
+  function unwrapTrpcErrorMessage(error) {
+    if (!error) {
+      return "Karakeep API request failed.";
+    }
+    const message = extractErrorMessage(error);
+    if (message) {
+      return message;
+    }
+    return "Karakeep API request failed.";
   }
 
   function buildListPaths(lists) {
