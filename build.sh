@@ -2,40 +2,54 @@
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-stage_dir="$(mktemp -d)"
+artifacts_dir="$project_dir/web-ext-artifacts"
+stage_dir="$(mktemp -d "${TMPDIR:-/tmp}/danvers-build.XXXXXX")"
+package_entries=(
+  manifest.json
+  README.md
+  LICENSE
+  icons
+  src
+)
+sign_extension=false
 
 cleanup() {
   rm -rf "$stage_dir"
 }
 trap cleanup EXIT
 
-mkdir -p \
-  "$stage_dir/icons" \
-  "$stage_dir/src/content" \
-  "$stage_dir/src/options"
+if ! command -v web-ext >/dev/null 2>&1; then
+  printf 'Error: web-ext is required. Install it with: npm install --global web-ext\n' >&2
+  exit 1
+fi
 
-cp "$project_dir/manifest.json" "$stage_dir/"
-cp "$project_dir/README.md" "$stage_dir/"
-cp "$project_dir/LICENSE" "$stage_dir/"
-cp "$project_dir/icons/icon-48.svg" "$stage_dir/icons/"
-cp "$project_dir/icons/icon-96.svg" "$stage_dir/icons/"
-cp "$project_dir/src/background.js" "$stage_dir/src/"
-cp "$project_dir/src/content/overlay.css" "$stage_dir/src/content/"
-cp "$project_dir/src/content/overlay.js" "$stage_dir/src/content/"
-cp "$project_dir/src/options/options.css" "$stage_dir/src/options/"
-cp "$project_dir/src/options/options.html" "$stage_dir/src/options/"
-cp "$project_dir/src/options/options.js" "$stage_dir/src/options/"
+if [[ -n "${WEB_EXT_API_KEY:-}" || -n "${WEB_EXT_API_SECRET:-}" ]]; then
+  if [[ -z "${WEB_EXT_API_KEY:-}" || -z "${WEB_EXT_API_SECRET:-}" ]]; then
+    printf 'Error: signing requires both WEB_EXT_API_KEY and WEB_EXT_API_SECRET.\n' >&2
+    exit 1
+  fi
+  sign_extension=true
+fi
+
+mkdir -p "$artifacts_dir"
+
+for entry in "${package_entries[@]}"; do
+  cp -R "$project_dir/$entry" "$stage_dir/"
+done
 
 web-ext build \
   --source-dir "$stage_dir" \
-  --artifacts-dir "$project_dir/web-ext-artifacts" \
+  --artifacts-dir "$artifacts_dir" \
   --overwrite-dest
 
-# https://addons.mozilla.org/en-US/developers/addon/api/key/
+if [[ "$sign_extension" != true ]]; then
+  printf 'Unsigned build complete. Set WEB_EXT_API_KEY and WEB_EXT_API_SECRET to sign.\n'
+  exit 0
+fi
 
 web-ext sign \
   --source-dir "$stage_dir" \
-  --artifacts-dir "$project_dir/web-ext-artifacts" \
-  --api-key "" \
-  --api-secret "" \
+  --artifacts-dir "$artifacts_dir" \
+  --api-key "$WEB_EXT_API_KEY" \
+  --api-secret "$WEB_EXT_API_SECRET" \
   --channel "unlisted"
