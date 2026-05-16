@@ -72,16 +72,14 @@ Create or use a Mozilla Add-ons developer account, then generate API credentials
 https://addons.mozilla.org/en-US/developers/addon/api/key/
 ```
 
-Copy credentials into build.sh.
-
-Run `build.sh` to build and sign the extension:
+Run `build.sh` with your credentials to build and sign the extension:
 
 ```bash
 chmod +x build.sh
-./build.sh
+WEB_EXT_API_KEY="your-api-key" WEB_EXT_API_SECRET="your-api-secret" ./build.sh
 ```
 
-This creates build artifacts in `web-ext-artifacts/`, including a signed `.xpi` if signing succeeds.
+This creates build artifacts in `web-ext-artifacts/`, including a signed `.xpi` if signing succeeds. Running `./build.sh` without credentials creates only the unsigned build artifact.
 
 ## Development
 
