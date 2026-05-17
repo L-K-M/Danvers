@@ -177,10 +177,8 @@
 
 #danvers-karakeep-overlay-host .list-box {
   margin: 0 16px 16px;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.06);
+  padding: 14px 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   color: #f7f7fb;
   font-size: 14px;
 }
