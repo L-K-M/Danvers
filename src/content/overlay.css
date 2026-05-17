@@ -107,17 +107,21 @@
 
 #danvers-karakeep-overlay-host .status.saving {
   background: rgba(105, 117, 255, 0.16);
-  color: #dfe3ff;
+  color: #dfe3ff !important;
 }
 
 #danvers-karakeep-overlay-host .status.success {
   background: rgba(43, 184, 116, 0.16);
-  color: #c9f7df;
+  color: #ecfff4 !important;
 }
 
 #danvers-karakeep-overlay-host .status.danger {
   background: rgba(255, 91, 91, 0.16);
-  color: #ffd1d1;
+  color: #ffe1e1 !important;
+}
+
+#danvers-karakeep-overlay-host .status span {
+  color: inherit !important;
 }
 
 #danvers-karakeep-overlay-host .spinner {
@@ -177,9 +181,9 @@
 
 #danvers-karakeep-overlay-host .list-box {
   margin: 0 16px 16px;
-  padding: 14px 0 0;
+  padding: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  color: #f7f7fb;
+  color: #f7f7fb !important;
   font-size: 14px;
 }
 
@@ -187,21 +191,21 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #aeb6c8;
+  color: #c7cfdf !important;
 }
 
 #danvers-karakeep-overlay-host .list-box.error {
-  color: #ffd1d1;
+  color: #ffd1d1 !important;
 }
 
 #danvers-karakeep-overlay-host .success-text {
-  color: #c9f7df;
+  color: #ecfff4 !important;
 }
 
 #danvers-karakeep-overlay-host .label {
   display: block;
   margin-bottom: 8px;
-  color: #aeb6c8;
+  color: #c7cfdf !important;
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.04em;
@@ -211,14 +215,14 @@
 #danvers-karakeep-overlay-host .list-checks {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
 #danvers-karakeep-overlay-host .list-check-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
+  gap: 8px;
+  min-height: 34px;
 }
 
 #danvers-karakeep-overlay-host .list-check-row input {
@@ -230,6 +234,7 @@
 
 #danvers-karakeep-overlay-host .list-check-row span {
   min-width: 0;
+  color: #f7f7fb !important;
   overflow: hidden;
   text-overflow: ellipsis;
 }
