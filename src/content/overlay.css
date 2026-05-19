@@ -1,5 +1,6 @@
 #danvers-karakeep-overlay-host {
-  all: initial;
+  all: initial !important;
+  display: block !important;
   position: fixed !important;
   inset: auto 12px max(12px, env(safe-area-inset-bottom)) 12px !important;
   z-index: 2147483647 !important;
@@ -10,7 +11,7 @@
 
 #danvers-karakeep-overlay-host,
 #danvers-karakeep-overlay-host * {
-  box-sizing: border-box;
+  box-sizing: border-box !important;
 }
 
 #danvers-karakeep-overlay-host[data-closing="true"] .panel {
@@ -19,16 +20,27 @@
 
 #danvers-karakeep-overlay-host .panel {
   position: relative;
+  display: block !important;
   width: 100%;
   max-width: 420px;
   margin: 0 auto;
+  padding: 0 !important;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 18px;
-  background: rgba(18, 20, 26, 0.96);
+  background: rgba(18, 20, 26, 0.96) !important;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.4);
-  color: #f7f7fb;
+  color: #f7f7fb !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif !important;
+  font-size: 16px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  line-height: normal !important;
+  text-align: left !important;
+  text-shadow: none !important;
+  text-transform: none !important;
   overflow: hidden;
   backdrop-filter: blur(14px);
+  isolation: isolate;
 }
 
 #danvers-karakeep-overlay-host .dismiss-progress {
@@ -36,15 +48,21 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  display: block !important;
+  height: 4px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   overflow: hidden;
 }
 
 #danvers-karakeep-overlay-host .dismiss-progress-bar {
-  width: 100%;
-  height: 100%;
-  background: #5ff0a8;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #5ff0a8 !important;
   transform: scaleX(0);
   transform-origin: left center;
 }
@@ -54,69 +72,136 @@
 }
 
 #danvers-karakeep-overlay-host .header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 16px 10px;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 16px 16px 10px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#danvers-karakeep-overlay-host .header-copy {
+  display: block !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 #danvers-karakeep-overlay-host .header-actions {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 8px;
+  display: flex !important;
+  align-items: flex-start !important;
+  flex: 0 0 auto !important;
+  gap: 8px !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 #danvers-karakeep-overlay-host .eyebrow {
-  color: #9fa8bd;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #9fa8bd !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
 }
 
 #danvers-karakeep-overlay-host .title {
-  margin-top: 2px;
-  font-size: 18px;
-  font-weight: 750;
-  line-height: 1.2;
+  display: block !important;
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  color: #f7f7fb !important;
+  font-size: 18px !important;
+  font-weight: 750 !important;
+  letter-spacing: normal !important;
+  line-height: 1.2 !important;
+  text-transform: none !important;
 }
 
 #danvers-karakeep-overlay-host .icon-button {
-  min-width: 44px;
-  min-height: 44px;
-  border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #f7f7fb;
-  font: inherit;
-  font-size: 20px;
-  line-height: 1;
+  appearance: none !important;
+  -moz-appearance: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+  color: #f7f7fb !important;
+  cursor: pointer !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif !important;
+  font-size: 20px !important;
+  font-style: normal !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  text-indent: 0 !important;
+  text-shadow: none !important;
+  text-transform: none !important;
+  transform: none !important;
+}
+
+#danvers-karakeep-overlay-host .icon-button::-moz-focus-inner {
+  padding: 0 !important;
+  border: 0 !important;
 }
 
 #danvers-karakeep-overlay-host .status {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0 16px 12px;
-  padding: 12px;
-  border-radius: 14px;
-  font-size: 15px;
-  line-height: 1.35;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 0 16px 12px !important;
+  padding: 12px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  line-height: 1.35 !important;
+  text-transform: none !important;
 }
 
 #danvers-karakeep-overlay-host .status.saving {
-  background: rgba(105, 117, 255, 0.16);
+  background: rgba(105, 117, 255, 0.16) !important;
   color: #dfe3ff !important;
 }
 
 #danvers-karakeep-overlay-host .status.success {
-  background: rgba(43, 184, 116, 0.16);
+  background: rgba(43, 184, 116, 0.16) !important;
   color: #ecfff4 !important;
 }
 
 #danvers-karakeep-overlay-host .status.danger {
-  background: rgba(255, 91, 91, 0.16);
+  background: rgba(255, 91, 91, 0.16) !important;
   color: #ffe1e1 !important;
 }
 
@@ -125,72 +210,106 @@
 }
 
 #danvers-karakeep-overlay-host .spinner {
-  width: 16px;
-  height: 16px;
-  flex: 0 0 auto;
-  border: 2px solid rgba(255, 255, 255, 0.25);
-  border-top-color: #ffffff;
-  border-radius: 999px;
+  display: block !important;
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 2px solid rgba(255, 255, 255, 0.25) !important;
+  border-top-color: #ffffff !important;
+  border-radius: 999px !important;
   animation: danvers-karakeep-spin 0.8s linear infinite;
 }
 
 #danvers-karakeep-overlay-host .url {
-  margin: 0 16px 12px;
-  color: #aeb6c8;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: block !important;
+  margin: 0 16px 12px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  color: #aeb6c8 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  line-height: 1.4 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
 }
 
 #danvers-karakeep-overlay-host .actions {
-  display: flex;
-  gap: 8px;
-  padding: 0 16px 14px;
+  display: flex !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 16px 14px !important;
+  border: 0 !important;
+  background: transparent !important;
 }
 
 #danvers-karakeep-overlay-host .button,
 #danvers-karakeep-overlay-host .select {
-  min-height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #f7f7fb;
-  font: inherit;
-  font-size: 14px;
+  appearance: none !important;
+  -moz-appearance: none !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
+  color: #f7f7fb !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif !important;
+  font-size: 14px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  line-height: 1.2 !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  text-shadow: none !important;
+  text-transform: none !important;
 }
 
 #danvers-karakeep-overlay-host .button {
-  padding: 0 14px;
-  font-weight: 700;
+  padding: 0 14px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
 }
 
 #danvers-karakeep-overlay-host .button.primary {
-  border-color: rgba(112, 122, 255, 0.85);
-  background: #707aff;
-  color: #ffffff;
+  border-color: rgba(112, 122, 255, 0.85) !important;
+  background: #707aff !important;
+  color: #ffffff !important;
 }
 
 #danvers-karakeep-overlay-host .button.quiet {
-  margin-left: auto;
+  margin-left: auto !important;
 }
 
 #danvers-karakeep-overlay-host .button:disabled {
-  opacity: 0.55;
+  opacity: 0.55 !important;
 }
 
 #danvers-karakeep-overlay-host .list-box {
-  margin: 0 16px 16px;
-  padding: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: block !important;
+  margin: 0 16px 16px !important;
+  padding: 12px !important;
+  border: 0 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: transparent !important;
+  box-shadow: none !important;
   color: #f7f7fb !important;
-  font-size: 14px;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  line-height: 1.4 !important;
+  text-transform: none !important;
 }
 
 #danvers-karakeep-overlay-host .list-box.muted {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
   color: #c7cfdf !important;
 }
 
@@ -203,46 +322,135 @@
 }
 
 #danvers-karakeep-overlay-host .label {
-  display: block;
-  margin-bottom: 8px;
+  display: block !important;
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
   color: #c7cfdf !important;
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
 }
 
 #danvers-karakeep-overlay-host .list-checks {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
 }
 
 #danvers-karakeep-overlay-host .list-check-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-}
-
-#danvers-karakeep-overlay-host .list-check-row input {
-  width: 20px;
-  height: 20px;
-  flex: 0 0 auto;
-  accent-color: #707aff;
-}
-
-#danvers-karakeep-overlay-host .list-check-row span {
-  min-width: 0;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-height: 34px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
   color: #f7f7fb !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  line-height: 1.35 !important;
+  text-transform: none !important;
+}
+
+#danvers-karakeep-overlay-host .list-check-input {
+  position: absolute !important;
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  max-height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+}
+
+#danvers-karakeep-overlay-host .list-check-mark {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 20px !important;
+  min-width: 20px !important;
+  max-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  flex: 0 0 20px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  border-radius: 3px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: none !important;
+  color: #12141a !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif !important;
+  font-size: 15px !important;
+  font-style: normal !important;
+  font-weight: 800 !important;
+  letter-spacing: normal !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  text-shadow: none !important;
+  text-transform: none !important;
+}
+
+#danvers-karakeep-overlay-host .list-check-input:checked + .list-check-mark {
+  border-color: #f7f7fb !important;
+  background: #f7f7fb !important;
+}
+
+#danvers-karakeep-overlay-host .list-check-input:checked + .list-check-mark::after {
+  content: "x" !important;
+}
+
+#danvers-karakeep-overlay-host .list-check-input:focus-visible + .list-check-mark {
+  outline: 2px solid #707aff !important;
+  outline-offset: 2px !important;
+}
+
+#danvers-karakeep-overlay-host .list-check-input:disabled + .list-check-mark,
+#danvers-karakeep-overlay-host .list-check-input:disabled ~ .list-check-text {
+  opacity: 0.55 !important;
+}
+
+#danvers-karakeep-overlay-host .list-check-text {
+  display: block !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f7f7fb !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  letter-spacing: normal !important;
+  line-height: 1.35 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
 }
 
 #danvers-karakeep-overlay-host .select {
-  min-width: 0;
-  flex: 1;
-  padding: 0 10px;
+  min-width: 0 !important;
+  flex: 1 !important;
+  padding: 0 10px !important;
 }
 
 #danvers-karakeep-overlay-host[data-position="top-left"] {

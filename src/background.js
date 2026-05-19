@@ -18,6 +18,7 @@
   const MAX_BOOKMARK_TITLE_LENGTH = 1000;
   const CONTENT_SCRIPT_PATH = "src/content/overlay.js";
   const CONTENT_CSS_PATH = "src/content/overlay.css";
+  let overlayCssPromise = null;
 
   const actionApi = ext.action || ext.browserAction;
 
@@ -65,11 +66,13 @@
 
     const requestId = createRequestId();
     const settings = await getSettings();
+    const overlayCss = await getOverlayCss();
     const payload = {
       requestId,
       url: tab.url || "",
       title: tab.title || "",
       popupPosition: settings.popupPosition,
+      overlayCss,
     };
 
     if (!isHttpPageUrl(payload.url)) {
@@ -107,19 +110,6 @@
 
   async function injectOverlay(tabId) {
     try {
-      if (ext.scripting && ext.scripting.insertCSS) {
-        await ext.scripting.insertCSS({
-          target: { tabId },
-          files: [CONTENT_CSS_PATH],
-        });
-      } else {
-        await ext.tabs.insertCSS(tabId, { file: CONTENT_CSS_PATH });
-      }
-    } catch (error) {
-      console.warn("Overlay CSS injection failed:", error);
-    }
-
-    try {
       if (ext.scripting && ext.scripting.executeScript) {
         await ext.scripting.executeScript({
           target: { tabId },
@@ -133,6 +123,24 @@
         throw error;
       }
     }
+  }
+
+  async function getOverlayCss() {
+    if (!overlayCssPromise) {
+      overlayCssPromise = fetch(ext.runtime.getURL(CONTENT_CSS_PATH))
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Unable to load overlay CSS: ${response.status}`);
+          }
+          return response.text();
+        })
+        .catch((error) => {
+          overlayCssPromise = null;
+          throw error;
+        });
+    }
+
+    return overlayCssPromise;
   }
 
   function isAlreadyInjectedError(error) {

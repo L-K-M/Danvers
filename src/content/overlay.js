@@ -8,6 +8,8 @@
 
   const ext = typeof browser !== "undefined" ? browser : chrome;
   const HOST_ID = "danvers-karakeep-overlay-host";
+  const ROOT_CLASS = "danvers-karakeep-overlay-root";
+  const STYLE_ID = "danvers-karakeep-overlay-style";
   const DEFAULT_AUTO_DISMISS_SECONDS = 5;
   const FADE_OUT_MS = 180;
   const state = {
@@ -35,9 +37,12 @@
     interacted: false,
     dismissTimer: null,
     dismissStartedAt: 0,
+    overlayCss: "",
   };
 
   let host = null;
+  let shadowRoot = null;
+  let overlayRoot = null;
 
   ext.runtime.onMessage.addListener((message) => {
     if (!message || message.type !== "SHOW_OVERLAY") {
@@ -49,6 +54,7 @@
   });
 
   function showOverlay(payload) {
+    state.overlayCss = typeof payload.overlayCss === "string" ? payload.overlayCss : state.overlayCss;
     ensureOverlay();
     clearDismissTimer();
 
@@ -231,7 +237,7 @@
 
   function ensureOverlay() {
     host = document.getElementById(HOST_ID);
-    if (host && host.shadowRoot) {
+    if (host && !host.shadowRoot) {
       host.remove();
       host = null;
     }
@@ -242,11 +248,72 @@
       document.documentElement.appendChild(host);
     }
 
+    shadowRoot = host.shadowRoot || host.attachShadow({ mode: "open" });
+    ensureShadowStyle();
+    overlayRoot = shadowRoot.querySelector(`.${ROOT_CLASS}`);
+    if (!overlayRoot) {
+      overlayRoot = document.createElement("div");
+      overlayRoot.className = ROOT_CLASS;
+      shadowRoot.appendChild(overlayRoot);
+    }
+
     applyHostPosition();
   }
 
+  function ensureShadowStyle() {
+    if (!shadowRoot) {
+      return;
+    }
+
+    let style = shadowRoot.getElementById(STYLE_ID);
+    if (!style) {
+      style = document.createElement("style");
+      style.id = STYLE_ID;
+      shadowRoot.prepend(style);
+    }
+
+    const css = getShadowCss(state.overlayCss);
+    if (style.textContent !== css) {
+      style.textContent = css;
+    }
+  }
+
+  function getShadowCss(css) {
+    let shadowCss = String(css || "");
+    shadowCss = replaceAllText(
+      shadowCss,
+      `#${HOST_ID}[data-closing="true"]`,
+      ':host([data-closing="true"])',
+    );
+    shadowCss = replaceAllText(
+      shadowCss,
+      `#${HOST_ID}[data-position="top-left"]`,
+      ':host([data-position="top-left"])',
+    );
+    shadowCss = replaceAllText(
+      shadowCss,
+      `#${HOST_ID}[data-position="top-right"]`,
+      ':host([data-position="top-right"])',
+    );
+    shadowCss = replaceAllText(
+      shadowCss,
+      `#${HOST_ID}[data-position="bottom-left"]`,
+      ':host([data-position="bottom-left"])',
+    );
+    shadowCss = replaceAllText(
+      shadowCss,
+      `#${HOST_ID}[data-position="bottom-right"]`,
+      ':host([data-position="bottom-right"])',
+    );
+    return replaceAllText(shadowCss, `#${HOST_ID}`, ":host");
+  }
+
+  function replaceAllText(value, search, replacement) {
+    return value.split(search).join(replacement);
+  }
+
   function render() {
-    if (!host) {
+    if (!overlayRoot) {
       return;
     }
 
@@ -254,11 +321,11 @@
     const statusClass = state.status === "error" ? "danger" : state.status === "success" ? "success" : "saving";
     const statusText = getStatusText();
 
-    host.innerHTML = `
+    overlayRoot.innerHTML = `
       <section class="panel" role="status" aria-live="polite">
         ${renderDismissProgress()}
         <div class="header">
-          <div>
+          <div class="header-copy">
             <div class="eyebrow">Karakeep</div>
             <div class="title">${escapeHtml(title)}</div>
           </div>
@@ -372,8 +439,9 @@
         const disabled = state.updatingListIds.includes(list.id) ? " disabled" : "";
         return `
           <label class="list-check-row">
-            <input type="checkbox" value="${escapeHtml(list.id)}" data-action="toggle-list"${checked}${disabled}>
-            <span>${escapeHtml(list.path)}</span>
+            <input class="list-check-input" type="checkbox" value="${escapeHtml(list.id)}" data-action="toggle-list"${checked}${disabled}>
+            <span class="list-check-mark" aria-hidden="true"></span>
+            <span class="list-check-text">${escapeHtml(list.path)}</span>
           </label>
         `;
       })
@@ -400,16 +468,16 @@
   }
 
   function bindEvents() {
-    const panel = host.querySelector(".panel");
+    const panel = overlayRoot.querySelector(".panel");
     if (panel) {
       panel.addEventListener("pointerdown", cancelDismissFromInteraction);
       panel.addEventListener("click", cancelDismissFromInteraction);
     }
 
-    const closeButtons = host.querySelectorAll('[data-action="close"]');
+    const closeButtons = overlayRoot.querySelectorAll('[data-action="close"]');
     closeButtons.forEach((button) => button.addEventListener("click", closeOverlay));
 
-    const retrySave = host.querySelector('[data-action="retry-save"]');
+    const retrySave = overlayRoot.querySelector('[data-action="retry-save"]');
     if (retrySave) {
       retrySave.addEventListener("click", () => {
         state.interacted = true;
@@ -418,7 +486,7 @@
       });
     }
 
-    const retryLists = host.querySelector('[data-action="retry-lists"]');
+    const retryLists = overlayRoot.querySelector('[data-action="retry-lists"]');
     if (retryLists) {
       retryLists.addEventListener("click", () => {
         state.interacted = true;
@@ -426,7 +494,7 @@
       });
     }
 
-    const optionsButton = host.querySelector('[data-action="options"]');
+    const optionsButton = overlayRoot.querySelector('[data-action="options"]');
     if (optionsButton) {
       optionsButton.addEventListener("click", () => {
         state.interacted = true;
@@ -434,7 +502,7 @@
       });
     }
 
-    const select = host.querySelector('[data-action="select-list"]');
+    const select = overlayRoot.querySelector('[data-action="select-list"]');
     if (select) {
       select.addEventListener("change", (event) => {
         state.interacted = true;
@@ -445,7 +513,7 @@
       });
     }
 
-    const listToggles = host.querySelectorAll('[data-action="toggle-list"]');
+    const listToggles = overlayRoot.querySelectorAll('[data-action="toggle-list"]');
     listToggles.forEach((toggle) => {
       toggle.addEventListener("change", (event) => {
         setListSelection(event.target.value, event.target.checked);
@@ -464,13 +532,15 @@
       host.remove();
     }
     host = null;
+    shadowRoot = null;
+    overlayRoot = null;
   }
 
   function cancelDismissFromInteraction() {
     if (state.dismissTimer) {
       state.interacted = true;
       clearDismissTimer();
-      const progress = host && host.querySelector(".dismiss-progress");
+      const progress = overlayRoot && overlayRoot.querySelector(".dismiss-progress");
       if (progress) {
         progress.remove();
       }
@@ -532,7 +602,7 @@
   }
 
   function syncDismissProgress() {
-    const bar = host && host.querySelector(".dismiss-progress-bar");
+    const bar = overlayRoot && overlayRoot.querySelector(".dismiss-progress-bar");
     if (!bar || !state.dismissStartedAt) {
       return;
     }
