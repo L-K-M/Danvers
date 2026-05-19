@@ -1,6 +1,6 @@
 {
   "name": "danvers-karakeep-extension",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "private": true,
   "scripts": {
     "check": "node --check src/background.js && node --check src/content/overlay.js && node --check src/options/options.js",

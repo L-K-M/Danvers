@@ -77,14 +77,10 @@
 
     if (!isHttpPageUrl(payload.url)) {
       try {
-        await injectOverlay(tab.id);
-        await ext.tabs.sendMessage(tab.id, {
-          type: "SHOW_OVERLAY",
-          payload: {
-            ...payload,
-            immediateError:
-              "This page cannot be saved. Only HTTP/HTTPS pages are supported.",
-          },
+        await showOverlayInTab(tab.id, {
+          ...payload,
+          immediateError:
+            "This page cannot be saved. Only HTTP/HTTPS pages are supported.",
         });
       } catch (error) {
         console.warn("Unable to show overlay on unsupported page:", error);
@@ -93,11 +89,7 @@
     }
 
     try {
-      await injectOverlay(tab.id);
-      await ext.tabs.sendMessage(tab.id, {
-        type: "SHOW_OVERLAY",
-        payload,
-      });
+      await showOverlayInTab(tab.id, payload);
     } catch (error) {
       console.error("Failed to inject Karakeep overlay:", error);
     }
@@ -108,21 +100,45 @@
     return tabs[0];
   }
 
-  async function injectOverlay(tabId) {
-    try {
-      if (ext.scripting && ext.scripting.executeScript) {
-        await ext.scripting.executeScript({
-          target: { tabId },
-          files: [CONTENT_SCRIPT_PATH],
-        });
-      } else {
-        await ext.tabs.executeScript(tabId, { file: CONTENT_SCRIPT_PATH });
-      }
-    } catch (error) {
-      if (!isAlreadyInjectedError(error)) {
-        throw error;
-      }
+  async function showOverlayInTab(tabId, payload) {
+    await injectOverlayScript(tabId);
+    await invokeOverlayScript(tabId, payload);
+  }
+
+  async function injectOverlayScript(tabId) {
+    if (ext.scripting && ext.scripting.executeScript) {
+      await ext.scripting.executeScript({
+        target: { tabId },
+        files: [CONTENT_SCRIPT_PATH],
+      });
+    } else {
+      await ext.tabs.executeScript(tabId, { file: CONTENT_SCRIPT_PATH });
     }
+  }
+
+  async function invokeOverlayScript(tabId, payload) {
+    if (ext.scripting && ext.scripting.executeScript) {
+      await ext.scripting.executeScript({
+        target: { tabId },
+        func: showInjectedOverlay,
+        args: [payload],
+      });
+    } else {
+      await ext.tabs.executeScript(tabId, {
+        code: `(${showInjectedOverlay.toString()})(${JSON.stringify(payload)});`,
+      });
+    }
+  }
+
+  function showInjectedOverlay(payload) {
+    if (
+      !window.__danversKarakeepOverlayApi ||
+      typeof window.__danversKarakeepOverlayApi.show !== "function"
+    ) {
+      throw new Error("Danvers overlay script is not available.");
+    }
+
+    window.__danversKarakeepOverlayApi.show(payload);
   }
 
   async function getOverlayCss() {
@@ -141,11 +157,6 @@
     }
 
     return overlayCssPromise;
-  }
-
-  function isAlreadyInjectedError(error) {
-    const message = error && error.message ? error.message : String(error);
-    return /danvers karakeep overlay already loaded/i.test(message);
   }
 
   async function createBookmark(payload, sender) {

@@ -2,7 +2,7 @@
   "use strict";
 
   if (window.__danversKarakeepOverlayLoaded) {
-    throw new Error("Danvers Karakeep overlay already loaded");
+    return;
   }
   window.__danversKarakeepOverlayLoaded = true;
 
@@ -44,14 +44,7 @@
   let shadowRoot = null;
   let overlayRoot = null;
 
-  ext.runtime.onMessage.addListener((message) => {
-    if (!message || message.type !== "SHOW_OVERLAY") {
-      return undefined;
-    }
-
-    showOverlay(message.payload || {});
-    return Promise.resolve({ ok: true });
-  });
+  window.__danversKarakeepOverlayApi = { show: showOverlay };
 
   function showOverlay(payload) {
     state.overlayCss = typeof payload.overlayCss === "string" ? payload.overlayCss : state.overlayCss;
