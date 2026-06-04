@@ -4,6 +4,9 @@ Danvers is an alternative Karakeep browser extension mainly aimed at mobile Fire
 
 <img src="screenshot.png" alt="Screenshot of Danvers extension in action." width="400">
 
+> [!IMPORTANT]
+> LLM Disclosure: This project was developed with the assistance of large language models (AI coding tools).
+
 ## Setup
 
 0. Install the extension in your browser (see "Permanent Installation" below).
