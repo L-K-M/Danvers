@@ -32,7 +32,10 @@
 
           <label class="field">
             <span>API token</span>
-            <input id="apiToken" type="password" placeholder="Paste Karakeep API token" autocomplete="off">
+            <div class="token-row">
+              <input id="apiToken" type="password" placeholder="Paste Karakeep API token" autocomplete="off">
+              <button type="button" id="toggleToken" aria-pressed="false" aria-label="Show API token">Show</button>
+            </div>
           </label>
 
           <label class="check-row">

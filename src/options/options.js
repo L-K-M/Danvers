@@ -18,6 +18,7 @@
   const primaryServerUrlInput = document.getElementById("primaryServerUrl");
   const secondaryServerUrlInput = document.getElementById("secondaryServerUrl");
   const apiTokenInput = document.getElementById("apiToken");
+  const toggleTokenButton = document.getElementById("toggleToken");
   const allowHttpInput = document.getElementById("allowHttp");
   const showListSelectorInput = document.getElementById("showListSelector");
   const autoDismissInput = document.getElementById("autoDismiss");
@@ -32,6 +33,15 @@
   form.addEventListener("submit", saveSettings);
   testButton.addEventListener("click", testConnection);
   reloadListsButton.addEventListener("click", loadListsFromSettings);
+  toggleTokenButton.addEventListener("click", toggleTokenVisibility);
+
+  function toggleTokenVisibility() {
+    const reveal = apiTokenInput.type === "password";
+    apiTokenInput.type = reveal ? "text" : "password";
+    toggleTokenButton.textContent = reveal ? "Hide" : "Show";
+    toggleTokenButton.setAttribute("aria-pressed", String(reveal));
+    toggleTokenButton.setAttribute("aria-label", reveal ? "Hide API token" : "Show API token");
+  }
 
   async function init() {
     const settings = await getSettings();
