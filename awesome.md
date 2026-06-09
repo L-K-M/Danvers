@@ -267,11 +267,15 @@ disjoint regions) to keep them independently revertable and conflict-free:
 
 | PR | Scope | Files |
 |----|-------|-------|
-| this PR | the review document | `awesome.md` |
-| overlay race fixes (B1, B2) | content script | `src/content/overlay.js` |
-| background fixes (B3, G1) | background | `src/background.js` |
-| token visibility toggle (F1) | options | `src/options/*` |
-| open-in-Karakeep link (F2) | content script | `src/content/overlay.js`, `src/content/overlay.css` |
+| #1 (this PR) | the review document | `awesome.md` |
+| #2 — overlay race fixes (B1, B2) | content script | `src/content/overlay.js` |
+| #3 — background fixes (B3, G1) | background | `src/background.js` |
+| #4 — token visibility toggle (F1) | options | `src/options/*` |
+| #5 — open-in-Karakeep link (F2) | content script | `src/content/overlay.js`, `src/content/overlay.css` |
+
+#2 and #5 both touch `src/content/overlay.js`, but in disjoint regions; a
+test merge of all four implementation branches together merges cleanly and
+passes `npm run check`.
 
 `manifest.json`/`package.json` version bumps were deliberately left out of the
 implementation PRs (every PR bumping the version would guarantee conflicts);
