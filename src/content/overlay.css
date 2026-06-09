@@ -278,6 +278,12 @@
   text-align: center !important;
 }
 
+#danvers-karakeep-overlay-host a.button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
 #danvers-karakeep-overlay-host .button.primary {
   border-color: rgba(112, 122, 255, 0.85) !important;
   background: #707aff !important;

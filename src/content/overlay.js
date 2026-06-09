@@ -21,6 +21,7 @@
     error: "",
     bookmark: null,
     alreadyExists: false,
+    serverUrl: "",
     lists: [],
     listsLoaded: false,
     listsLoading: false,
@@ -61,6 +62,7 @@
     state.error = payload.immediateError || "";
     state.bookmark = null;
     state.alreadyExists = false;
+    state.serverUrl = "";
     state.lists = [];
     state.listsLoaded = false;
     state.listsLoading = false;
@@ -119,6 +121,7 @@
       detail: autoListError ? `${baseDetail} ${autoListError}` : baseDetail,
       bookmark: response.bookmark,
       alreadyExists: Boolean(response.alreadyExists),
+      serverUrl: response.server && response.server.url ? response.server.url : "",
       showListSelector: preferences.showListSelector !== false,
       autoDismiss: preferences.autoDismiss !== false,
       autoDismissMs: normalizeAutoDismissMs(preferences.autoDismissSeconds),
@@ -373,6 +376,15 @@
       return `
         <div class="actions">
           <button class="button primary" type="button" data-action="retry-save">Retry save</button>
+        </div>
+      `;
+    }
+
+    if (state.status === "success" && state.bookmark && state.serverUrl) {
+      const href = `${state.serverUrl}/dashboard/preview/${encodeURIComponent(state.bookmark.id)}`;
+      return `
+        <div class="actions">
+          <a class="button" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Open in Karakeep</a>
         </div>
       `;
     }
