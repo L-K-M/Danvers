@@ -231,13 +231,29 @@
       const settings = await getSettings();
       ensureConfigured(settings);
 
-      const response = await karakeepRequest(
+      // The two requests are independent; run them in parallel to halve the
+      // latency of populating the list picker.
+      const listsPromise = karakeepRequest(
         settings,
         "lists.list",
         undefined,
         LIST_TIMEOUT_MS,
         "GET",
       );
+      const selectedPromise =
+        payload && payload.bookmarkId
+          ? karakeepRequest(
+              settings,
+              "lists.getListsOfBookmark",
+              { bookmarkId: payload.bookmarkId },
+              LIST_TIMEOUT_MS,
+              "GET",
+            )
+          : null;
+      const [response, selectedResponse] = await Promise.all([
+        listsPromise,
+        selectedPromise ? selectedPromise.catch((error) => ({ error })) : null,
+      ]);
       const result = response.data;
       const lists = Array.isArray(result.lists) ? result.lists : [];
       const editableLists = buildListPaths(lists).filter(
@@ -245,14 +261,10 @@
       );
       let selectedListIds = [];
 
-      if (payload && payload.bookmarkId) {
-        const selectedResponse = await karakeepRequest(
-          settings,
-          "lists.getListsOfBookmark",
-          { bookmarkId: payload.bookmarkId },
-          LIST_TIMEOUT_MS,
-          "GET",
-        );
+      if (selectedResponse) {
+        if (selectedResponse.error) {
+          throw selectedResponse.error;
+        }
         const selectedLists = Array.isArray(selectedResponse.data.lists)
           ? selectedResponse.data.lists
           : [];
@@ -634,7 +646,14 @@
     if (typeof title !== "string") {
       return "";
     }
-    return title.slice(0, MAX_BOOKMARK_TITLE_LENGTH);
+    let normalized = title.slice(0, MAX_BOOKMARK_TITLE_LENGTH);
+    const lastCode = normalized.charCodeAt(normalized.length - 1);
+    // Don't end on a high surrogate: slicing UTF-16 code units can split an
+    // emoji/astral character in half and produce an invalid lone surrogate.
+    if (lastCode >= 0xd800 && lastCode <= 0xdbff) {
+      normalized = normalized.slice(0, -1);
+    }
+    return normalized;
   }
 
   function formatZodError(zodError) {
