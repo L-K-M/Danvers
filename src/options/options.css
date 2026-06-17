@@ -89,6 +89,20 @@ select option {
   color: #f7f7fb;
 }
 
+.token-row {
+  display: flex;
+  gap: 8px;
+}
+
+.token-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.token-row button {
+  flex: 0 0 auto;
+}
+
 .check-row {
   display: flex;
   align-items: flex-start;
