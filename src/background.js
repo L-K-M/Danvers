@@ -12,8 +12,10 @@
     autoDismissSeconds: 5,
     popupPosition: "bottom-right",
     allowHttp: false,
+    captureFullPage: false,
   };
   const SAVE_TIMEOUT_MS = 30000;
+  const SINGLEFILE_TIMEOUT_MS = 60000;
   const LIST_TIMEOUT_MS = 20000;
   const MAX_BOOKMARK_TITLE_LENGTH = 1000;
   const CONTENT_SCRIPT_PATH = "src/content/overlay.js";
@@ -33,6 +35,10 @@
 
     if (message.type === "CREATE_BOOKMARK") {
       return createBookmark(message.payload, sender);
+    }
+
+    if (message.type === "CREATE_BOOKMARK_SINGLEFILE") {
+      return createBookmarkSingleFile(message.payload, sender);
     }
 
     if (message.type === "GET_LISTS") {
@@ -72,6 +78,7 @@
       url: tab.url || "",
       title: tab.title || "",
       popupPosition: settings.popupPosition,
+      captureFullPage: settings.captureFullPage,
       overlayCss,
     };
 
@@ -189,41 +196,102 @@
         throw userError("Karakeep saved the link but returned an unexpected response.");
       }
 
-      let autoListResult = null;
-      if (settings.defaultListId) {
-        try {
-          const autoListResponse = await karakeepRequest(
-            settings,
-            "lists.addToList",
-            { bookmarkId: bookmark.id, listId: settings.defaultListId },
-            LIST_TIMEOUT_MS,
-          );
-          autoListResult = {
-            ok: true,
-            listId: settings.defaultListId,
-            serverLabel: autoListResponse.server.label,
-          };
-        } catch (error) {
-          autoListResult = { ok: false, message: normalizeErrorMessage(error) };
-        }
-      }
-
-      return {
-        ok: true,
-        bookmark,
-        alreadyExists: Boolean(bookmark.alreadyExists),
-        preferences: {
-          showListSelector: settings.showListSelector,
-          autoDismiss: settings.autoDismiss,
-          autoDismissSeconds: settings.autoDismissSeconds,
-          defaultListId: settings.defaultListId,
-        },
-        autoListResult,
-        server: bookmarkResponse.server,
-      };
+      return await finishBookmarkCreation(settings, bookmark, bookmarkResponse);
     } catch (error) {
       return { ok: false, error: normalizeErrorMessage(error) };
     }
+  }
+
+  // Save the page from a browser-captured HTML snapshot instead of a bare link.
+  // The link request only sends the URL and relies on Karakeep crawling it
+  // server-side; when the server cannot reach the page (paywalls, logins,
+  // geo-blocks) the article text is lost. Uploading what the browser already
+  // rendered sidesteps the crawl entirely.
+  async function createBookmarkSingleFile(payload, sender) {
+    try {
+      const settings = await getSettings();
+      ensureConfigured(settings);
+
+      const tabUrl = payload && payload.url ? payload.url : sender.tab && sender.tab.url;
+      const html = payload && typeof payload.html === "string" ? payload.html : "";
+
+      if (!isHttpPageUrl(tabUrl)) {
+        throw userError("This page cannot be saved. Only HTTP/HTTPS pages are supported.");
+      }
+
+      if (!html) {
+        throw userError("The page content could not be captured.");
+      }
+
+      const singleFileResponse = await karakeepSingleFileRequest(
+        settings,
+        { url: tabUrl, html },
+        SINGLEFILE_TIMEOUT_MS,
+        "skip",
+      );
+      const bookmark = extractSingleFileBookmark(singleFileResponse.data);
+
+      if (!bookmark || !bookmark.id) {
+        throw userError("Karakeep saved the page but returned an unexpected response.");
+      }
+
+      return await finishBookmarkCreation(settings, bookmark, singleFileResponse);
+    } catch (error) {
+      return { ok: false, error: normalizeErrorMessage(error) };
+    }
+  }
+
+  // Shared tail for both save paths: optionally drop the new bookmark into the
+  // configured default List, then shape the response the overlay expects.
+  async function finishBookmarkCreation(settings, bookmark, bookmarkResponse) {
+    let autoListResult = null;
+    if (settings.defaultListId) {
+      try {
+        const autoListResponse = await karakeepRequest(
+          settings,
+          "lists.addToList",
+          { bookmarkId: bookmark.id, listId: settings.defaultListId },
+          LIST_TIMEOUT_MS,
+        );
+        autoListResult = {
+          ok: true,
+          listId: settings.defaultListId,
+          serverLabel: autoListResponse.server.label,
+        };
+      } catch (error) {
+        autoListResult = { ok: false, message: normalizeErrorMessage(error) };
+      }
+    }
+
+    return {
+      ok: true,
+      bookmark,
+      alreadyExists: Boolean(bookmark.alreadyExists),
+      preferences: {
+        showListSelector: settings.showListSelector,
+        autoDismiss: settings.autoDismiss,
+        autoDismissSeconds: settings.autoDismissSeconds,
+        defaultListId: settings.defaultListId,
+      },
+      autoListResult,
+      server: bookmarkResponse.server,
+    };
+  }
+
+  function extractSingleFileBookmark(data) {
+    if (!data) {
+      return null;
+    }
+    // The REST endpoint returns the bookmark object directly; tolerate a couple
+    // of plausible wrappers so a minor server-shape change doesn't break saving.
+    const candidate = data.bookmark || data;
+    if (candidate && candidate.id) {
+      return candidate;
+    }
+    if (data.bookmarkId) {
+      return { id: data.bookmarkId, alreadyExists: Boolean(data.alreadyExists) };
+    }
+    return null;
   }
 
   async function getLists(payload) {
@@ -367,6 +435,7 @@
       autoDismissSeconds: normalizeAutoDismissSeconds(stored.autoDismissSeconds),
       popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
+      captureFullPage: stored.captureFullPage === true,
     };
   }
 
@@ -425,7 +494,10 @@
     throw userError(`${label} Karakeep server URL must use HTTPS unless HTTP is enabled in settings.`);
   }
 
-  async function karakeepRequest(settings, procedure, input, timeoutMs, method) {
+  // Run a request against the primary server, falling back to the secondary on
+  // network/server-side failures (but not on auth/validation errors). `doRequest`
+  // receives the chosen server and returns the unwrapped response data.
+  async function requestWithFailover(settings, doRequest) {
     const servers = getConfiguredServers(settings);
     let primaryError = null;
 
@@ -433,14 +505,7 @@
       const server = servers[i];
       try {
         return {
-          data: await karakeepRequestToServer(
-            settings,
-            server,
-            procedure,
-            input,
-            timeoutMs,
-            method,
-          ),
+          data: await doRequest(server),
           server,
           usedFallback: i > 0,
         };
@@ -460,6 +525,58 @@
     }
 
     throw userError("No Karakeep server URL is configured.");
+  }
+
+  function karakeepRequest(settings, procedure, input, timeoutMs, method) {
+    return requestWithFailover(settings, (server) =>
+      karakeepRequestToServer(settings, server, procedure, input, timeoutMs, method),
+    );
+  }
+
+  function karakeepSingleFileRequest(settings, payload, timeoutMs, ifExists) {
+    return requestWithFailover(settings, (server) =>
+      singleFileRequestToServer(settings, server, payload, timeoutMs, ifExists),
+    );
+  }
+
+  async function singleFileRequestToServer(settings, server, payload, timeoutMs, ifExists) {
+    const mode = ifExists || "skip";
+    const url = `${server.url}/api/v1/bookmarks/singlefile?ifexists=${encodeURIComponent(mode)}`;
+    const form = new FormData();
+    form.append("url", payload.url);
+    // Let fetch set the multipart Content-Type/boundary; setting it by hand
+    // breaks the upload. Only the Authorization header is added explicitly.
+    form.append("file", new Blob([payload.html], { type: "text/html" }), "page.html");
+
+    const response = await fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${settings.apiToken}` },
+        body: form,
+      },
+      timeoutMs,
+    );
+
+    const text = await response.text();
+    let parsed = null;
+    if (text) {
+      try {
+        parsed = JSON.parse(text);
+      } catch (_error) {
+        parsed = null;
+      }
+    }
+
+    if (!response.ok) {
+      throw apiErrorFromResponse(response, parsed, text);
+    }
+
+    if (parsed === null) {
+      throw userError("Karakeep returned an invalid response.");
+    }
+
+    return parsed;
   }
 
   async function karakeepRequestToServer(settings, server, procedure, input, timeoutMs, method) {

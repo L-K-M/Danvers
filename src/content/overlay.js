@@ -35,6 +35,7 @@
     autoDismissMs: DEFAULT_AUTO_DISMISS_SECONDS * 1000,
     defaultListId: "",
     popupPosition: "bottom-right",
+    captureFullPage: false,
     interacted: false,
     dismissTimer: null,
     dismissStartedAt: 0,
@@ -57,6 +58,7 @@
     state.url = payload.url || window.location.href;
     state.title = payload.title || document.title;
     state.popupPosition = normalizePopupPosition(payload.popupPosition);
+    state.captureFullPage = payload.captureFullPage === true;
     applyHostPosition();
     state.status = payload.immediateError ? "error" : "saving";
     state.detail = "";
@@ -85,14 +87,16 @@
   async function saveCurrentPage(requestId) {
     setState({ status: "saving", detail: "Saving link...", error: "" });
 
-    const response = await sendMessage({
-      type: "CREATE_BOOKMARK",
-      payload: {
-        requestId,
-        url: state.url,
-        title: state.title,
-      },
-    });
+    const response = state.captureFullPage
+      ? await saveCapturedPage(requestId)
+      : await sendMessage({
+          type: "CREATE_BOOKMARK",
+          payload: {
+            requestId,
+            url: state.url,
+            title: state.title,
+          },
+        });
 
     if (requestId !== state.requestId) {
       return;
@@ -139,6 +143,64 @@
     if (state.showListSelector) {
       loadLists(requestId);
     }
+  }
+
+  // Capture the page as the browser currently sees it and upload that snapshot,
+  // so the article text survives even when Karakeep's server can't crawl the
+  // URL. If capture fails for any reason, fall back to a plain link save.
+  async function saveCapturedPage(requestId) {
+    setState({ status: "saving", detail: "Capturing page...", error: "" });
+
+    let html = "";
+    try {
+      html = capturePageHtml();
+    } catch (_error) {
+      html = "";
+    }
+
+    if (!html) {
+      return sendMessage({
+        type: "CREATE_BOOKMARK",
+        payload: { requestId, url: state.url, title: state.title },
+      });
+    }
+
+    setState({ status: "saving", detail: "Uploading page...", error: "" });
+    return sendMessage({
+      type: "CREATE_BOOKMARK_SINGLEFILE",
+      payload: { requestId, url: state.url, title: state.title, html },
+    });
+  }
+
+  function capturePageHtml() {
+    const clone = document.documentElement.cloneNode(true);
+
+    // Don't archive our own overlay UI.
+    const overlayHost = clone.querySelector(`#${HOST_ID}`);
+    if (overlayHost) {
+      overlayHost.remove();
+    }
+
+    // The archive is a static snapshot; scripts would only bloat it or re-run.
+    clone.querySelectorAll("script").forEach((node) => node.remove());
+
+    // Resolve relative URLs (images, stylesheets, links) against the live page
+    // so the stored archive keeps working when served from Karakeep's origin.
+    let head = clone.querySelector("head");
+    if (!head) {
+      head = document.createElement("head");
+      clone.insertBefore(head, clone.firstChild);
+    }
+    if (!head.querySelector("base")) {
+      const base = document.createElement("base");
+      base.setAttribute("href", document.baseURI || window.location.href);
+      head.insertBefore(base, head.firstChild);
+    }
+
+    const doctype = document.doctype
+      ? `<!DOCTYPE ${document.doctype.name}>`
+      : "<!DOCTYPE html>";
+    return `${doctype}\n${clone.outerHTML}`;
   }
 
   async function loadLists(requestId) {
