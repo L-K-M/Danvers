@@ -12,8 +12,10 @@
     autoDismissSeconds: 5,
     popupPosition: "bottom-right",
     allowHttp: false,
-    captureFullPage: false,
+    captureFullPage: true,
+    singleFileIfExists: "skip",
   };
+  const SINGLEFILE_IF_EXISTS_MODES = ["skip", "overwrite", "append"];
   const SAVE_TIMEOUT_MS = 30000;
   const SINGLEFILE_TIMEOUT_MS = 60000;
   const LIST_TIMEOUT_MS = 20000;
@@ -227,7 +229,7 @@
         settings,
         { url: tabUrl, html },
         SINGLEFILE_TIMEOUT_MS,
-        "skip",
+        settings.singleFileIfExists,
       );
       const bookmark = extractSingleFileBookmark(singleFileResponse.data);
 
@@ -435,8 +437,15 @@
       autoDismissSeconds: normalizeAutoDismissSeconds(stored.autoDismissSeconds),
       popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
-      captureFullPage: stored.captureFullPage === true,
+      captureFullPage: stored.captureFullPage !== false,
+      singleFileIfExists: normalizeSingleFileIfExists(stored.singleFileIfExists),
     };
+  }
+
+  function normalizeSingleFileIfExists(mode) {
+    return SINGLEFILE_IF_EXISTS_MODES.includes(mode)
+      ? mode
+      : DEFAULT_SETTINGS.singleFileIfExists;
   }
 
   function normalizePopupPosition(position) {

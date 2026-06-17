@@ -12,8 +12,10 @@
     autoDismissSeconds: 5,
     popupPosition: "bottom-right",
     allowHttp: false,
-    captureFullPage: false,
+    captureFullPage: true,
+    singleFileIfExists: "skip",
   };
+  const SINGLEFILE_IF_EXISTS_MODES = ["skip", "overwrite", "append"];
 
   const form = document.getElementById("settings-form");
   const primaryServerUrlInput = document.getElementById("primaryServerUrl");
@@ -22,6 +24,7 @@
   const toggleTokenButton = document.getElementById("toggleToken");
   const allowHttpInput = document.getElementById("allowHttp");
   const captureFullPageInput = document.getElementById("captureFullPage");
+  const singleFileIfExistsSelect = document.getElementById("singleFileIfExists");
   const showListSelectorInput = document.getElementById("showListSelector");
   const autoDismissInput = document.getElementById("autoDismiss");
   const autoDismissSecondsInput = document.getElementById("autoDismissSeconds");
@@ -52,6 +55,7 @@
     apiTokenInput.value = settings.apiToken;
     allowHttpInput.checked = settings.allowHttp;
     captureFullPageInput.checked = settings.captureFullPage;
+    singleFileIfExistsSelect.value = settings.singleFileIfExists;
     showListSelectorInput.checked = settings.showListSelector;
     autoDismissInput.checked = settings.autoDismiss;
     autoDismissSecondsInput.value = String(settings.autoDismissSeconds);
@@ -178,8 +182,15 @@
       autoDismissSeconds: normalizeAutoDismissSeconds(stored.autoDismissSeconds),
       popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
-      captureFullPage: stored.captureFullPage === true,
+      captureFullPage: stored.captureFullPage !== false,
+      singleFileIfExists: normalizeSingleFileIfExists(stored.singleFileIfExists),
     };
+  }
+
+  function normalizeSingleFileIfExists(mode) {
+    return SINGLEFILE_IF_EXISTS_MODES.includes(mode)
+      ? mode
+      : DEFAULT_SETTINGS.singleFileIfExists;
   }
 
   function readFormSettings() {
@@ -194,6 +205,7 @@
       popupPosition: normalizePopupPosition(popupPositionSelect.value),
       allowHttp: allowHttpInput.checked,
       captureFullPage: captureFullPageInput.checked,
+      singleFileIfExists: normalizeSingleFileIfExists(singleFileIfExistsSelect.value),
     };
   }
 

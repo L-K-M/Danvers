@@ -20,7 +20,8 @@ Danvers is an alternative Karakeep browser extension mainly aimed at mobile Fire
 6. Optionally choose a default List.
 7. Choose where the inline popup appears: top left, top right, bottom left, or bottom right.
 8. Configure how many seconds the success panel remains visible before auto-closing.
-9. Optionally enable `Capture full page content`. When enabled, Danvers uploads the page exactly as your browser rendered it (via Karakeep's `singlefile` endpoint) instead of sending only the link for the server to crawl. Use this when your browser can read an article but the Karakeep server cannot (paywalls, logins, geo-blocks), which would otherwise leave the saved bookmark without its text.
+9. `Capture full page content` is on by default. Danvers uploads the page exactly as your browser rendered it (via Karakeep's `singlefile` endpoint) instead of sending only the link for the server to crawl. This keeps the article text even when your browser can read a page but the Karakeep server cannot (paywalls, logins, geo-blocks). Disable it to fall back to plain link saves.
+10. Choose what happens `When the page is already saved`: `Skip` leaves the existing bookmark untouched (default), while `Overwrite` or `Append` re-upload the capture so a page saved earlier without its text gets backfilled.
 
 Danvers always tries the primary server first. If the primary request fails because the server cannot be reached or returns a server-side error, it retries the same request against the secondary server. Authentication and validation errors do not fall back because the same token/request is expected to fail on both addresses.
 

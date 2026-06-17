@@ -48,6 +48,16 @@
             <span>Capture full page content (uploads the article your browser sees instead of letting the server crawl the link)</span>
           </label>
 
+          <label class="field">
+            <span>When the page is already saved</span>
+            <select id="singleFileIfExists">
+              <option value="skip">Skip (leave the existing bookmark unchanged)</option>
+              <option value="overwrite">Overwrite (replace it with the new capture)</option>
+              <option value="append">Append (add the new capture to the existing bookmark)</option>
+            </select>
+            <small>Only used when capturing full page content. Choose Overwrite or Append to backfill pages that were saved before without their text.</small>
+          </label>
+
           <label class="check-row">
             <input id="showListSelector" type="checkbox">
             <span>Show List selector after saving</span>
