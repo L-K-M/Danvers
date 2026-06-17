@@ -1,6 +1,6 @@
 # Danvers Code Review — Findings & Ideas
 
-A thorough review of the current codebase (`v0.2.10`): bugs, general issues,
+A thorough review of the codebase as of `v0.2.10`: bugs, general issues,
 missing features, and ideas for improvements. Items marked **[implemented]**
 have a companion PR; the rest are written down for future consideration.
 
@@ -113,12 +113,6 @@ copy of `getSettings()` doesn't trim the token; the background copy does).
 consistently applied (good!), but it does reset things like `<select>`
 focus/open state mid-interaction. Targeted DOM updates would remove that
 class of glitch — only worth it if the overlay grows.
-
-### G6. No CI / no linting
-
-`npm run check` is a syntax check only. A tiny GitHub Actions workflow running
-`npm run check` plus `web-ext lint` on PRs would catch manifest mistakes
-before they reach a device.
 
 ---
 

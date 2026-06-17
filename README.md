@@ -1,6 +1,6 @@
 # Danvers Karakeep Extension
 
-**Version:** <!-- version -->0.9.0<!-- /version -->
+**Version:** [<!-- version -->0.9.0<!-- /version -->](https://github.com/L-K-M/Danvers/releases/latest)
 
 Danvers is an alternative Karakeep browser extension mainly aimed at mobile Firefox-based browsers like Iceraven.
 
@@ -41,7 +41,7 @@ npm run build    # package an unsigned .zip into web-ext-artifacts/
 npm run start    # run the add-on in a temporary Firefox profile (web-ext run)
 ```
 
-`npm run build` writes a version-stamped archive, e.g. `web-ext-artifacts/danvers-0.2.10.zip`, containing only the runtime files (`manifest.json`, `src/`, `icons/`, `README.md`, `LICENSE`).
+`npm run build` writes a version-stamped archive, e.g. `web-ext-artifacts/danvers-0.9.0.zip`, containing only the runtime files (`manifest.json`, `src/`, `icons/`, `README.md`, `LICENSE`).
 
 ## Temporary Installation
 

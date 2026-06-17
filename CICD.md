@@ -49,7 +49,7 @@ git push origin v1.2.3
 The workflow then:
 
 1. Installs the pinned tooling with `npm ci`.
-2. **Verifies the tag matches `manifest.json`.** The packaged add-on takes its version from `manifest.json`; the tag only names the Release. If they disagree the build fails, so a Release named `v1.5.0` can never ship a `0.2.10` extension.
+2. **Verifies the tag matches `manifest.json`.** The packaged add-on takes its version from `manifest.json`; the tag only names the Release. If they disagree the build fails, so a Release named `v1.5.0` can never ship a `0.9.0` extension.
 3. Packages the extension:
    - If the `AMO_JWT_ISSUER` / `AMO_JWT_SECRET` secrets are set, it **signs** through Mozilla Add-ons (`npm run sign`, unlisted channel) and produces an installable **signed `.xpi`**.
    - Otherwise it builds an **unsigned `.zip`** (`npm run build`).
