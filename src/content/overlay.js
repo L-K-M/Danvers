@@ -43,6 +43,7 @@
   let host = null;
   let shadowRoot = null;
   let overlayRoot = null;
+  let fadeOutTimer = null;
 
   window.__danversKarakeepOverlayApi = { show: showOverlay };
 
@@ -188,6 +189,7 @@
 
     state.interacted = true;
     clearDismissTimer();
+    const requestId = state.requestId;
     const selectedList = state.lists.find((list) => list.id === listId);
     setState({
       updatingListIds: [...state.updatingListIds, listId],
@@ -202,6 +204,10 @@
         listId,
       },
     });
+
+    if (requestId !== state.requestId) {
+      return;
+    }
 
     if (!response || !response.ok) {
       setState({
@@ -545,7 +551,7 @@
       return;
     }
     host.dataset.closing = "true";
-    setTimeout(closeOverlay, FADE_OUT_MS);
+    fadeOutTimer = setTimeout(closeOverlay, FADE_OUT_MS);
   }
 
   function normalizePopupPosition(position) {
@@ -587,6 +593,10 @@
     if (state.dismissTimer) {
       clearTimeout(state.dismissTimer);
       state.dismissTimer = null;
+    }
+    if (fadeOutTimer) {
+      clearTimeout(fadeOutTimer);
+      fadeOutTimer = null;
     }
     state.dismissStartedAt = 0;
     if (host) {
