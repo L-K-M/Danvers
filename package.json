@@ -1,9 +1,14 @@
 {
   "name": "danvers-karakeep-extension",
-  "version": "0.2.10",
   "private": true,
+  "description": "Save the current page to Karakeep from an inline Iceraven-friendly overlay.",
   "scripts": {
-    "check": "node --check src/background.js && node --check src/content/overlay.js && node --check src/options/options.js",
-    "package": "node scripts/package-xpi.js"
+    "lint": "web-ext lint",
+    "build": "web-ext build",
+    "sign": "web-ext sign --channel=unlisted",
+    "start": "web-ext run"
+  },
+  "devDependencies": {
+    "web-ext": "^10.4.0"
   }
 }

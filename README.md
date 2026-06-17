@@ -25,23 +25,21 @@ If you use an `http://` local address, enable `Allow HTTP server URLs for local/
 
 ## Build
 
-Run a syntax check:
+The tooling is [`web-ext`](https://extensionworkshop.com/documentation/develop/web-ext-command-reference/), Mozilla's official command-line tool, driven through `npm` scripts. Install it once:
 
 ```bash
-npm run check
+npm install
 ```
 
-Create a local unsigned XPI package:
+Then:
 
 ```bash
-npm run package
+npm run lint     # validate the manifest and sources (web-ext lint)
+npm run build    # package an unsigned .zip into web-ext-artifacts/
+npm run start    # run the add-on in a temporary Firefox profile (web-ext run)
 ```
 
-The package is written to:
-
-```text
-dist/danvers-karakeep.xpi
-```
+`npm run build` writes a version-stamped archive, e.g. `web-ext-artifacts/danvers-0.2.10.zip`, containing only the runtime files (`manifest.json`, `src/`, `icons/`, `README.md`, `LICENSE`).
 
 ## Temporary Installation
 
@@ -61,13 +59,7 @@ Iceraven:
 
 Before signing, set `browser_specific_settings.gecko.id` in `manifest.json` to a unique add-on id that you control.
 
-For permanent Firefox/Iceraven installation, the extension must be signed by Mozilla. `web-ext` is Mozilla's official command-line tool for building, linting, running, and signing extensions.
-
-Install `web-ext`:
-
-```bash
-npm install --global web-ext
-```
+For permanent Firefox/Iceraven installation, the extension must be signed by Mozilla.
 
 Create or use a Mozilla Add-ons developer account, then generate API credentials at:
 
@@ -75,34 +67,12 @@ Create or use a Mozilla Add-ons developer account, then generate API credentials
 https://addons.mozilla.org/en-US/developers/addon/api/key/
 ```
 
-Store your AMO credentials in `../web-ext-credentials.env`:
+Export your AMO credentials and sign:
 
 ```bash
-WEB_EXT_API_KEY="your-api-key"
-WEB_EXT_API_SECRET="your-api-secret"
+export WEB_EXT_API_KEY="your-jwt-issuer"
+export WEB_EXT_API_SECRET="your-jwt-secret"
+npm run sign
 ```
 
-Run `build.sh` to build and sign the extension:
-
-```bash
-chmod +x build.sh
-./build.sh
-```
-
-This creates build artifacts in `web-ext-artifacts/`, including a signed `.xpi` if signing succeeds. Running `./build.sh` without `../web-ext-credentials.env` creates only the unsigned build artifact.
-
-## Development
-
-Run the extension in a temporary Firefox profile:
-
-```bash
-web-ext run
-```
-
-Check for common extension packaging issues:
-
-```bash
-web-ext lint
-```
-
-The local `npm run package` command is useful when `web-ext` is not installed, but `web-ext` is still the preferred tool for AMO-compatible builds and signing.
+This writes a signed `.xpi` to `web-ext-artifacts/`. The same signing happens automatically in CI when a `v*` tag is pushed and the `AMO_JWT_ISSUER` / `AMO_JWT_SECRET` repository secrets are configured — see [CICD.md](CICD.md).
