@@ -8,41 +8,6 @@ have a companion PR; the rest are written down for future consideration.
 
 ## 1. Bugs
 
-### B1. Pending fade-out can delete a freshly re-opened overlay **[implemented]**
-
-`fadeOutAndCloseOverlay()` (`src/content/overlay.js`) schedules
-`setTimeout(closeOverlay, FADE_OUT_MS)` but never stores the timer handle. If
-the user taps the toolbar button again while the fade-out is in flight (or
-within the 180 ms window after auto-dismiss fires), `showOverlay()` happily
-reuses the existing host element — and then the stale timeout fires and
-removes it. The new save proceeds in the background with no visible UI,
-because every subsequent `render()` bails out on `overlayRoot === null`.
-
-**Fix:** track the fade-out timer and cancel it in `clearDismissTimer()`,
-which `showOverlay()` already calls.
-
-### B2. List add/remove responses are not guarded against overlay reuse **[implemented]**
-
-`saveCurrentPage()` and `loadLists()` both compare `requestId !==
-state.requestId` after their `await` to drop stale responses, but
-`setListSelection()` does not. Sequence: user toggles a list, immediately
-re-invokes the overlay on a new save; the old `ADD_TO_LIST` response lands and
-overwrites `selectedListIds` / `listMessage` for the *new* bookmark's UI.
-
-**Fix:** capture `state.requestId` at entry and discard the response if it no
-longer matches.
-
-### B3. Title truncation can split a surrogate pair **[implemented]**
-
-`normalizeBookmarkTitle()` (`src/background.js`) does
-`title.slice(0, 1000)`. `String.prototype.slice` counts UTF-16 code units, so
-a title whose 1000th/1001st units are an emoji's surrogate pair gets cut in
-half, producing a lone surrogate. Lone surrogates serialize as U+FFFD or
-trigger server-side validation errors depending on the stack — exactly the
-"titles longer than 1000 characters" bug class this code was added to fix.
-
-**Fix:** after slicing, drop a trailing high surrogate.
-
 ### B4. Saving on non-injectable pages fails completely silently
 
 When the page is injectable but unsupported (e.g. `about:config` typed as a
@@ -113,13 +78,6 @@ predictable.
 
 ## 2. General issues
 
-### G1. The overlay's list fetch does two sequential round-trips **[implemented]**
-
-`getLists()` in `src/background.js` awaits `lists.list` and then
-`lists.getListsOfBookmark`. The two requests are independent — running them
-in parallel halves the latency of populating the list picker, which matters
-on the flaky local-Wi-Fi connections this extension explicitly targets.
-
 ### G2. A failure of `lists.getListsOfBookmark` discards the successful list fetch
 
 If the membership lookup fails after `lists.list` succeeded, the whole picker
@@ -165,18 +123,6 @@ before they reach a device.
 ---
 
 ## 3. Missing features
-
-### F1. API token visibility toggle in options **[implemented]**
-
-The token field is `type="password"` with no way to verify what you pasted —
-on mobile, where paste mishaps are common, a Show/Hide toggle is near
-mandatory.
-
-### F2. "Open in Karakeep" link after saving **[implemented]**
-
-After a successful save, the overlay knows the bookmark id and which server
-handled the request — one anchor (`{server}/dashboard/preview/{id}`) lets the
-user jump straight to the saved bookmark to add tags or notes.
 
 ### F3. Tags support
 
@@ -257,26 +203,3 @@ Beyond the B4 error case: flash `✓` on the action badge when a save
 succeeds with the overlay auto-dismissed, so power users can disable the
 panel entirely (`showListSelector: false`, `autoDismissSeconds: 1`) and still
 get confirmation.
-
----
-
-## Implementation notes
-
-Implemented items were split into separate PRs that touch disjoint files (or
-disjoint regions) to keep them independently revertable and conflict-free:
-
-| PR | Scope | Files |
-|----|-------|-------|
-| #1 (this PR) | the review document | `awesome.md` |
-| #2 — overlay race fixes (B1, B2) | content script | `src/content/overlay.js` |
-| #3 — background fixes (B3, G1) | background | `src/background.js` |
-| #4 — token visibility toggle (F1) | options | `src/options/*` |
-| #5 — open-in-Karakeep link (F2) | content script | `src/content/overlay.js`, `src/content/overlay.css` |
-
-#2 and #5 both touch `src/content/overlay.js`, but in disjoint regions; a
-test merge of all four implementation branches together merges cleanly and
-passes `npm run check`.
-
-`manifest.json`/`package.json` version bumps were deliberately left out of the
-implementation PRs (every PR bumping the version would guarantee conflicts);
-bump once after merging.
