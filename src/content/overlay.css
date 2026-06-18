@@ -211,6 +211,32 @@
   color: inherit !important;
 }
 
+#danvers-karakeep-overlay-host a.status-link {
+  justify-content: space-between !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  transition: background 120ms ease !important;
+}
+
+#danvers-karakeep-overlay-host a.status-link:hover {
+  background: rgba(43, 184, 116, 0.26) !important;
+}
+
+#danvers-karakeep-overlay-host a.status-link:focus-visible {
+  outline: 2px solid #5ff0a8 !important;
+  outline-offset: 2px !important;
+}
+
+#danvers-karakeep-overlay-host .status-open {
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  opacity: 0.85 !important;
+}
+
 #danvers-karakeep-overlay-host .spinner {
   display: block !important;
   width: 16px !important;
