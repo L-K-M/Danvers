@@ -336,10 +336,7 @@
             <button class="icon-button" type="button" data-action="close" aria-label="Close">×</button>
           </div>
         </div>
-        <div class="status ${statusClass}">
-          ${state.status === "saving" ? '<span class="spinner" aria-hidden="true"></span>' : ""}
-          <span>${escapeHtml(statusText || "Working...")}</span>
-        </div>
+        ${renderStatus(statusClass, statusText)}
         ${renderUrl()}
         ${renderActions()}
         ${renderLists()}
@@ -362,6 +359,27 @@
     return state.error;
   }
 
+  function renderStatus(statusClass, statusText) {
+    const safeText = escapeHtml(statusText || "Working...");
+
+    if (state.status === "success" && state.bookmark && state.serverUrl) {
+      const href = `${state.serverUrl}/dashboard/preview/${encodeURIComponent(state.bookmark.id)}`;
+      return `
+        <a class="status ${statusClass} status-link" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" title="Open in Karakeep">
+          <span>${safeText}</span>
+          <span class="status-open" aria-hidden="true">↗</span>
+        </a>
+      `;
+    }
+
+    return `
+      <div class="status ${statusClass}">
+        ${state.status === "saving" ? '<span class="spinner" aria-hidden="true"></span>' : ""}
+        <span>${safeText}</span>
+      </div>
+    `;
+  }
+
   function renderDismissProgress() {
     if (state.status !== "success" || state.listError || !state.dismissStartedAt) {
       return "";
@@ -382,15 +400,6 @@
       return `
         <div class="actions">
           <button class="button primary" type="button" data-action="retry-save">Retry save</button>
-        </div>
-      `;
-    }
-
-    if (state.status === "success" && state.bookmark && state.serverUrl) {
-      const href = `${state.serverUrl}/dashboard/preview/${encodeURIComponent(state.bookmark.id)}`;
-      return `
-        <div class="actions">
-          <a class="button" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">Open in Karakeep</a>
         </div>
       `;
     }
