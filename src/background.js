@@ -12,9 +12,11 @@
     autoDismissSeconds: 5,
     popupPosition: "bottom-right",
     allowHttp: false,
+    sendPageContent: true,
   };
   const SAVE_TIMEOUT_MS = 30000;
   const LIST_TIMEOUT_MS = 20000;
+  const UPLOAD_TIMEOUT_MS = 60000;
   const MAX_BOOKMARK_TITLE_LENGTH = 1000;
   const CONTENT_SCRIPT_PATH = "src/content/overlay.js";
   const CONTENT_CSS_PATH = "src/content/overlay.css";
@@ -72,6 +74,7 @@
       url: tab.url || "",
       title: tab.title || "",
       popupPosition: settings.popupPosition,
+      capturePageContent: settings.sendPageContent,
       overlayCss,
     };
 
@@ -172,17 +175,72 @@
         throw userError("This page cannot be saved. Only HTTP/HTTPS pages are supported.");
       }
 
-      const bookmarkResponse = await karakeepRequest(
-        settings,
-        "bookmarks.createBookmark",
-        {
-          type: "link",
-          url: tabUrl,
-          title: bookmarkTitle || undefined,
-          source: "extension",
-        },
-        SAVE_TIMEOUT_MS,
-      );
+      const pageHtml = payload && typeof payload.html === "string" ? payload.html : "";
+      const captureSkippedReason =
+        payload && typeof payload.captureSkippedReason === "string"
+          ? payload.captureSkippedReason
+          : "";
+      const bookmarkInput = {
+        type: "link",
+        url: tabUrl,
+        title: bookmarkTitle || undefined,
+        source: "extension",
+      };
+
+      // Karakeep only accepts page content on a link bookmark as a
+      // `precrawledArchiveId`, which must be the id of an already-uploaded
+      // asset. When it is present the crawler reads that archive instead of
+      // fetching the URL itself, which is what keeps captcha-walled pages
+      // saveable.
+      let precrawledArchive = null;
+      let contentWarning = captureSkippedReason
+        ? `Page content not sent: ${captureSkippedReason}`
+        : "";
+
+      if (settings.sendPageContent && pageHtml) {
+        try {
+          precrawledArchive = await uploadPrecrawledArchive(settings, pageHtml, bookmarkTitle);
+          contentWarning = "";
+        } catch (error) {
+          contentWarning = `Page content not sent: ${normalizeErrorMessage(error)}`;
+        }
+      }
+
+      let bookmarkResponse = null;
+
+      if (precrawledArchive) {
+        try {
+          bookmarkResponse = await karakeepRequest(
+            settings,
+            "bookmarks.createBookmark",
+            { ...bookmarkInput, precrawledArchiveId: precrawledArchive.assetId },
+            SAVE_TIMEOUT_MS,
+            "POST",
+            // The asset id only exists on the server that accepted the upload,
+            // so the bookmark has to be created there too. Failing over to the
+            // other address here would attach an id it knows nothing about.
+            [precrawledArchive.server],
+          );
+        } catch (error) {
+          if (!shouldFallback(error)) {
+            throw error;
+          }
+          // That server became unreachable between the two calls. Saving the
+          // link without the archive beats losing the bookmark entirely.
+          contentWarning = `Page content not sent: ${normalizeErrorMessage(error)}`;
+          precrawledArchive = null;
+        }
+      }
+
+      if (!bookmarkResponse) {
+        bookmarkResponse = await karakeepRequest(
+          settings,
+          "bookmarks.createBookmark",
+          bookmarkInput,
+          SAVE_TIMEOUT_MS,
+        );
+      }
+
       const bookmark = bookmarkResponse.data;
 
       if (!bookmark || !bookmark.id) {
@@ -212,6 +270,8 @@
         ok: true,
         bookmark,
         alreadyExists: Boolean(bookmark.alreadyExists),
+        pageContentSaved: Boolean(precrawledArchive),
+        contentWarning,
         preferences: {
           showListSelector: settings.showListSelector,
           autoDismiss: settings.autoDismiss,
@@ -340,6 +400,7 @@
       showListSelector: settings.showListSelector,
       autoDismiss: settings.autoDismiss,
       autoDismissSeconds: settings.autoDismissSeconds,
+      sendPageContent: settings.sendPageContent,
       hasDefaultList: Boolean(settings.defaultListId),
     };
   }
@@ -367,6 +428,7 @@
       autoDismissSeconds: normalizeAutoDismissSeconds(stored.autoDismissSeconds),
       popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
+      sendPageContent: stored.sendPageContent !== false,
     };
   }
 
@@ -425,25 +487,24 @@
     throw userError(`${label} Karakeep server URL must use HTTPS unless HTTP is enabled in settings.`);
   }
 
-  async function karakeepRequest(settings, procedure, input, timeoutMs, method) {
-    const servers = getConfiguredServers(settings);
+  async function karakeepRequest(settings, procedure, input, timeoutMs, method, serverList) {
+    const servers = serverList || getConfiguredServers(settings);
+    const result = await withServerFailover(servers, (server) =>
+      karakeepRequestToServer(settings, server, procedure, input, timeoutMs, method),
+    );
+
+    return { data: result.value, server: result.server, usedFallback: result.usedFallback };
+  }
+
+  // Runs `attempt` against each configured server in turn, stopping at the
+  // first success and at any error that would fail the same way everywhere.
+  async function withServerFailover(servers, attempt) {
     let primaryError = null;
 
     for (let i = 0; i < servers.length; i += 1) {
       const server = servers[i];
       try {
-        return {
-          data: await karakeepRequestToServer(
-            settings,
-            server,
-            procedure,
-            input,
-            timeoutMs,
-            method,
-          ),
-          server,
-          usedFallback: i > 0,
-        };
+        return { value: await attempt(server), server, usedFallback: i > 0 };
       } catch (error) {
         if (i === 0) {
           primaryError = error;
@@ -460,6 +521,60 @@
     }
 
     throw userError("No Karakeep server URL is configured.");
+  }
+
+  async function uploadPrecrawledArchive(settings, html, title) {
+    const result = await withServerFailover(getConfiguredServers(settings), (server) =>
+      uploadPrecrawledArchiveToServer(settings, server, html, title),
+    );
+
+    return { assetId: result.value, server: result.server };
+  }
+
+  // Asset uploads are plain REST multipart, not tRPC, so this cannot go
+  // through karakeepRequestToServer.
+  async function uploadPrecrawledArchiveToServer(settings, server, html, title) {
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new Blob([html], { type: "text/html" }),
+      buildArchiveFileName(title),
+    );
+
+    const response = await fetchWithTimeout(
+      `${server.url}/api/assets`,
+      {
+        method: "POST",
+        // Content-Type is deliberately unset: fetch has to add the multipart
+        // boundary itself.
+        headers: { Authorization: `Bearer ${settings.apiToken}` },
+        body: formData,
+      },
+      UPLOAD_TIMEOUT_MS,
+    );
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      throw apiErrorFromResponse(response, safeParseJson(text), text);
+    }
+
+    const parsed = safeParseJson(text);
+    const assetId = parsed && typeof parsed.assetId === "string" ? parsed.assetId : "";
+
+    if (!assetId) {
+      throw userError("Karakeep did not return an id for the uploaded page content.");
+    }
+
+    return assetId;
+  }
+
+  function buildArchiveFileName(title) {
+    const base = String(title || "")
+      .replace(/[^a-zA-Z0-9-_\s]/g, "_")
+      .replace(/\s+/g, "_")
+      .slice(0, 100);
+    return `${base || "page"}.html`;
   }
 
   async function karakeepRequestToServer(settings, server, procedure, input, timeoutMs, method) {
@@ -549,6 +664,17 @@
       return JSON.parse(text);
     } catch (_error) {
       throw userError("Karakeep returned an invalid response.");
+    }
+  }
+
+  function safeParseJson(text) {
+    if (!text) {
+      return null;
+    }
+    try {
+      return JSON.parse(text);
+    } catch (_error) {
+      return null;
     }
   }
 

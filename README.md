@@ -18,8 +18,19 @@ Danvers is an alternative Karakeep browser extension mainly aimed at mobile Fire
 4. Paste a Karakeep API token.
 5. Use `Test Connection` to verify the token and load editable Lists.
 6. Optionally choose a default List.
-7. Choose where the inline popup appears: top left, top right, bottom left, or bottom right.
-8. Configure how many seconds the success panel remains visible before auto-closing.
+7. Leave `Send the page content with the bookmark` enabled unless you want link-only saves (see below).
+8. Choose where the inline popup appears: top left, top right, bottom left, or bottom right.
+9. Configure how many seconds the success panel remains visible before auto-closing.
+
+## Sending page content
+
+By default Danvers uploads the page as your browser rendered it, so Karakeep does not have to fetch the URL itself. This keeps pages readable that a server-side crawl cannot reach: captcha and bot-check walls, cookie banners, and anything behind a login you are already signed in to.
+
+Mechanically, Danvers serializes the live DOM (scripts stripped, a `<base>` tag pinned so relative links and images still resolve), uploads it to `POST /api/assets`, and passes the returned asset id to Karakeep as `precrawledArchiveId`. Karakeep's crawler then parses that archive instead of requesting the URL.
+
+The save degrades rather than fails. If the capture or the upload does not work — the page is larger than 5 MB, the server rejects the asset, the connection drops — Danvers saves the plain link and the success panel says why the content was not sent. Turning the setting off saves the link alone and lets Karakeep crawl as before.
+
+Because an asset id is only valid on the server that stored it, the bookmark is always created on whichever server accepted the upload. If that server becomes unreachable in between, Danvers falls back to a link-only save rather than attaching an id the other server does not know.
 
 Danvers always tries the primary server first. If the primary request fails because the server cannot be reached or returns a server-side error, it retries the same request against the secondary server. Authentication and validation errors do not fall back because the same token/request is expected to fail on both addresses.
 

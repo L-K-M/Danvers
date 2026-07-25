@@ -12,6 +12,7 @@
     autoDismissSeconds: 5,
     popupPosition: "bottom-right",
     allowHttp: false,
+    sendPageContent: true,
   };
 
   const form = document.getElementById("settings-form");
@@ -20,6 +21,7 @@
   const apiTokenInput = document.getElementById("apiToken");
   const toggleTokenButton = document.getElementById("toggleToken");
   const allowHttpInput = document.getElementById("allowHttp");
+  const sendPageContentInput = document.getElementById("sendPageContent");
   const showListSelectorInput = document.getElementById("showListSelector");
   const autoDismissInput = document.getElementById("autoDismiss");
   const autoDismissSecondsInput = document.getElementById("autoDismissSeconds");
@@ -49,6 +51,7 @@
     secondaryServerUrlInput.value = settings.secondaryServerUrl;
     apiTokenInput.value = settings.apiToken;
     allowHttpInput.checked = settings.allowHttp;
+    sendPageContentInput.checked = settings.sendPageContent;
     showListSelectorInput.checked = settings.showListSelector;
     autoDismissInput.checked = settings.autoDismiss;
     autoDismissSecondsInput.value = String(settings.autoDismissSeconds);
@@ -175,6 +178,7 @@
       autoDismissSeconds: normalizeAutoDismissSeconds(stored.autoDismissSeconds),
       popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
+      sendPageContent: stored.sendPageContent !== false,
     };
   }
 
@@ -189,6 +193,7 @@
       autoDismissSeconds: normalizeAutoDismissSeconds(autoDismissSecondsInput.value),
       popupPosition: normalizePopupPosition(popupPositionSelect.value),
       allowHttp: allowHttpInput.checked,
+      sendPageContent: sendPageContentInput.checked,
     };
   }
 
