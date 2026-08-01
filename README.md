@@ -1,6 +1,6 @@
 # Danvers Karakeep Extension
 
-**Version:** [<!-- version -->1.0.0<!-- /version -->](https://github.com/L-K-M/Danvers/releases/latest)
+**Version:** [<!-- version -->1.5.0<!-- /version -->](https://github.com/L-K-M/Danvers/releases/latest)
 
 Danvers is an alternative Karakeep browser extension mainly aimed at mobile Firefox-based browsers like Iceraven.
 
