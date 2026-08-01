@@ -13,6 +13,7 @@
     popupPosition: "bottom-right",
     allowHttp: false,
     sendPageContent: true,
+    resaveMode: "skip",
   };
   const SAVE_TIMEOUT_MS = 30000;
   const LIST_TIMEOUT_MS = 20000;
@@ -247,6 +248,34 @@
         throw userError("Karakeep saved the link but returned an unexpected response.");
       }
 
+      // A bookmark that already existed keeps whatever content it was created
+      // with, so createBookmark quietly drops the archive we just uploaded.
+      // Re-attaching it here is what lets a page saved before this feature
+      // existed — or one whose server-side crawl came back empty — pick up the
+      // text the browser can see.
+      let backfilled = false;
+      if (bookmark.alreadyExists && precrawledArchive) {
+        if (settings.resaveMode === "skip") {
+          // Otherwise the captured page is silently discarded and there is no
+          // hint that a setting controls it.
+          contentWarning =
+            "Existing bookmark left as it was; set what happens on re-save in settings to update its content.";
+        } else {
+          try {
+            await backfillPrecrawledArchive(
+              settings,
+              precrawledArchive,
+              bookmark,
+              settings.resaveMode,
+            );
+            backfilled = true;
+          } catch (error) {
+            // The bookmark itself is fine; only the content refresh failed.
+            contentWarning = `Saved page content not updated: ${normalizeErrorMessage(error)}`;
+          }
+        }
+      }
+
       let autoListResult = null;
       if (settings.defaultListId) {
         try {
@@ -271,6 +300,7 @@
         bookmark,
         alreadyExists: Boolean(bookmark.alreadyExists),
         pageContentSaved: Boolean(precrawledArchive),
+        pageContentBackfilled: backfilled,
         contentWarning,
         preferences: {
           showListSelector: settings.showListSelector,
@@ -401,6 +431,7 @@
       autoDismiss: settings.autoDismiss,
       autoDismissSeconds: settings.autoDismissSeconds,
       sendPageContent: settings.sendPageContent,
+      resaveMode: settings.resaveMode,
       hasDefaultList: Boolean(settings.defaultListId),
     };
   }
@@ -429,7 +460,15 @@
       popupPosition: normalizePopupPosition(stored.popupPosition),
       allowHttp: stored.allowHttp === true,
       sendPageContent: stored.sendPageContent !== false,
+      resaveMode: normalizeResaveMode(stored.resaveMode),
     };
+  }
+
+  function normalizeResaveMode(mode) {
+    if (mode === "skip" || mode === "replace" || mode === "append") {
+      return mode;
+    }
+    return DEFAULT_SETTINGS.resaveMode;
   }
 
   function normalizePopupPosition(position) {
@@ -567,6 +606,70 @@
     }
 
     return assetId;
+  }
+
+  // Mirrors what Karakeep's own POST /bookmarks/singlefile does for its
+  // `ifexists` modes. Going through tRPC rather than that endpoint avoids
+  // uploading the page a second time — the asset is already stored — and keeps
+  // the title and `source: "extension"` that singlefile has no field for.
+  //
+  // Every call is pinned to the server holding the asset, for the same reason
+  // the create call is: the id means nothing on the other address.
+  async function backfillPrecrawledArchive(settings, archive, bookmark, mode) {
+    const servers = [archive.server];
+    const existingArchiveId = findLatestPrecrawledArchiveId(bookmark);
+
+    if (mode === "replace" && existingArchiveId) {
+      await karakeepRequest(
+        settings,
+        "assets.replaceAsset",
+        {
+          bookmarkId: bookmark.id,
+          oldAssetId: existingArchiveId,
+          newAssetId: archive.assetId,
+        },
+        SAVE_TIMEOUT_MS,
+        "POST",
+        servers,
+      );
+    } else {
+      // "append", or "replace" on a bookmark that never had an archive to
+      // replace — Karakeep treats both as a plain attach.
+      await karakeepRequest(
+        settings,
+        "assets.attachAsset",
+        {
+          bookmarkId: bookmark.id,
+          asset: { id: archive.assetId, assetType: "precrawledArchive" },
+        },
+        SAVE_TIMEOUT_MS,
+        "POST",
+        servers,
+      );
+    }
+
+    // Attaching an asset does not re-read it. Without this the bookmark still
+    // shows whatever text the original crawl produced, which is exactly the
+    // thing being fixed.
+    await karakeepRequest(
+      settings,
+      "bookmarks.recrawlBookmark",
+      { bookmarkId: bookmark.id },
+      SAVE_TIMEOUT_MS,
+      "POST",
+      servers,
+    );
+  }
+
+  function findLatestPrecrawledArchiveId(bookmark) {
+    const assets = Array.isArray(bookmark.assets) ? bookmark.assets : [];
+    for (let i = assets.length - 1; i >= 0; i -= 1) {
+      const asset = assets[i];
+      if (asset && asset.assetType === "precrawledArchive" && asset.id) {
+        return asset.id;
+      }
+    }
+    return "";
   }
 
   function buildArchiveFileName(title) {

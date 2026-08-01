@@ -19,8 +19,9 @@ Danvers is an alternative Karakeep browser extension mainly aimed at mobile Fire
 5. Use `Test Connection` to verify the token and load editable Lists.
 6. Optionally choose a default List.
 7. Leave `Send the page content with the bookmark` enabled unless you want link-only saves (see below).
-8. Choose where the inline popup appears: top left, top right, bottom left, or bottom right.
-9. Configure how many seconds the success panel remains visible before auto-closing.
+8. Choose what happens when you re-save a page that is already bookmarked (see below).
+9. Choose where the inline popup appears: top left, top right, bottom left, or bottom right.
+10. Configure how many seconds the success panel remains visible before auto-closing.
 
 ## Sending page content
 
@@ -31,6 +32,18 @@ Mechanically, Danvers serializes the live DOM (scripts stripped, a `<base>` tag 
 The save degrades rather than fails. If the capture or the upload does not work — the page is larger than 5 MB, the server rejects the asset, the connection drops — Danvers saves the plain link and the success panel says why the content was not sent. Turning the setting off saves the link alone and lets Karakeep crawl as before.
 
 Because an asset id is only valid on the server that stored it, the bookmark is always created on whichever server accepted the upload. If that server becomes unreachable in between, Danvers falls back to a link-only save rather than attaching an id the other server does not know.
+
+### Re-saving a page you already bookmarked
+
+Karakeep keeps the content a bookmark was created with, so saving a page a second time normally changes nothing — the fresh capture is discarded. That leaves anything you bookmarked before this feature existed, or whose server-side crawl came back empty, stuck with the text it never got.
+
+`When the page is already saved` decides what happens instead:
+
+- **Leave the existing bookmark alone** (default) — nothing changes, and the panel points you at this setting so the discarded capture is not a mystery.
+- **Replace its saved content with this capture** — swaps the stored archive for the new one.
+- **Keep both captures** — attaches the new archive and leaves the old one in place.
+
+Both of the latter two then ask Karakeep to re-read the bookmark, because attaching an archive on its own does not refresh the extracted text. Danvers does this over tRPC (`assets.replaceAsset` / `assets.attachAsset`, then `bookmarks.recrawlBookmark`) using the archive it already uploaded, rather than through Karakeep's `POST /bookmarks/singlefile`, which would mean uploading the page a second time and dropping the title. If the refresh fails the bookmark is still saved and the panel says what went wrong.
 
 Danvers always tries the primary server first. If the primary request fails because the server cannot be reached or returns a server-side error, it retries the same request against the secondary server. Authentication and validation errors do not fall back because the same token/request is expected to fail on both addresses.
 
