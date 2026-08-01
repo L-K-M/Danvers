@@ -64,10 +64,20 @@ form {
   font-weight: 700;
 }
 
-.field small {
+.field small,
+.check-row small {
   color: #9fa8bd;
   font-size: 12px;
   line-height: 1.35;
+}
+
+.check-copy {
+  display: grid;
+  gap: 5px;
+}
+
+.check-row small {
+  font-weight: 400;
 }
 
 input[type="url"],

@@ -12,6 +12,9 @@
   const STYLE_ID = "danvers-karakeep-overlay-style";
   const DEFAULT_AUTO_DISMISS_SECONDS = 5;
   const FADE_OUT_MS = 180;
+  // Serialized page HTML above this size is dropped rather than pushed through
+  // runtime.sendMessage and uploaded from a phone on flaky Wi-Fi.
+  const MAX_PAGE_CONTENT_BYTES = 5 * 1024 * 1024;
   const state = {
     requestId: "",
     url: "",
@@ -35,6 +38,7 @@
     autoDismissMs: DEFAULT_AUTO_DISMISS_SECONDS * 1000,
     defaultListId: "",
     popupPosition: "bottom-right",
+    capturePageContent: false,
     interacted: false,
     dismissTimer: null,
     dismissStartedAt: 0,
@@ -57,6 +61,7 @@
     state.url = payload.url || window.location.href;
     state.title = payload.title || document.title;
     state.popupPosition = normalizePopupPosition(payload.popupPosition);
+    state.capturePageContent = payload.capturePageContent === true;
     applyHostPosition();
     state.status = payload.immediateError ? "error" : "saving";
     state.detail = "";
@@ -83,7 +88,15 @@
   }
 
   async function saveCurrentPage(requestId) {
-    setState({ status: "saving", detail: "Saving link...", error: "" });
+    const capture = state.capturePageContent
+      ? capturePageHtml()
+      : { html: "", skippedReason: "" };
+
+    setState({
+      status: "saving",
+      detail: capture.html ? "Saving page content..." : "Saving link...",
+      error: "",
+    });
 
     const response = await sendMessage({
       type: "CREATE_BOOKMARK",
@@ -91,6 +104,8 @@
         requestId,
         url: state.url,
         title: state.title,
+        html: capture.html,
+        captureSkippedReason: capture.skippedReason,
       },
     });
 
@@ -110,16 +125,21 @@
     const preferences = response.preferences || {};
     const autoListResult = response.autoListResult || null;
     const serverDetail = response.server ? ` via ${response.server.label}` : "";
-    const baseDetail = response.alreadyExists
-      ? `Already saved in Karakeep${serverDetail}.`
-      : `Saved to Karakeep${serverDetail}.`;
+    let baseDetail;
+    if (response.alreadyExists) {
+      baseDetail = `Already saved in Karakeep${serverDetail}.`;
+    } else if (response.pageContentSaved) {
+      baseDetail = `Saved to Karakeep with page content${serverDetail}.`;
+    } else {
+      baseDetail = `Saved to Karakeep${serverDetail}.`;
+    }
     const autoListError =
       autoListResult && !autoListResult.ok
         ? `Default List failed: ${autoListResult.message}`
         : "";
     setState({
       status: "success",
-      detail: autoListError ? `${baseDetail} ${autoListError}` : baseDetail,
+      detail: [baseDetail, response.contentWarning, autoListError].filter(Boolean).join(" "),
       bookmark: response.bookmark,
       alreadyExists: Boolean(response.alreadyExists),
       serverUrl: response.server && response.server.url ? response.server.url : "",
@@ -139,6 +159,60 @@
     if (state.showListSelector) {
       loadLists(requestId);
     }
+  }
+
+  // Serializes the rendered DOM so Karakeep can skip its own server-side crawl.
+  // Sending the page as the user actually sees it is the only way past
+  // captchas, cookie walls, and anything else that only answers to a real
+  // browser session.
+  function capturePageHtml() {
+    try {
+      if (!document.documentElement) {
+        return { html: "", skippedReason: "the page has no document to capture." };
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+
+      // Scripts are dead weight in an archive and are most of the byte count on
+      // heavy pages.
+      clone.querySelectorAll("script").forEach((node) => node.remove());
+
+      const overlayHost = clone.querySelector(`#${HOST_ID}`);
+      if (overlayHost) {
+        overlayHost.remove();
+      }
+
+      // Pin the base URL so relative links and images still resolve once the
+      // markup is detached from this tab.
+      const head = clone.querySelector("head");
+      if (head) {
+        head.querySelectorAll("base").forEach((node) => node.remove());
+        const base = document.createElement("base");
+        base.setAttribute("href", document.baseURI);
+        head.insertBefore(base, head.firstChild);
+      }
+
+      const html = `<!DOCTYPE html>\n${clone.outerHTML}`;
+      const bytes = new Blob([html]).size;
+
+      if (bytes > MAX_PAGE_CONTENT_BYTES) {
+        return {
+          html: "",
+          skippedReason: `the page is too large (${formatMegabytes(bytes)}).`,
+        };
+      }
+
+      return { html, skippedReason: "" };
+    } catch (error) {
+      return {
+        html: "",
+        skippedReason: error && error.message ? error.message : String(error),
+      };
+    }
+  }
+
+  function formatMegabytes(bytes) {
+    return `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
   }
 
   async function loadLists(requestId) {
