@@ -51,6 +51,16 @@
             </span>
           </label>
 
+          <label class="field">
+            <span>When the page is already saved</span>
+            <select id="resaveMode">
+              <option value="skip">Leave the existing bookmark alone</option>
+              <option value="replace">Replace its saved content with this capture</option>
+              <option value="append">Keep both captures</option>
+            </select>
+            <small>Re-saving a page you bookmarked earlier can backfill the content Karakeep never managed to crawl. Replacing swaps the stored copy; keeping both leaves the old one attached. Either way Karakeep re-reads the page afterwards. Needs the page content setting above.</small>
+          </label>
+
           <label class="check-row">
             <input id="showListSelector" type="checkbox">
             <span>Show List selector after saving</span>

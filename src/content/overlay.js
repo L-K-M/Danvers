@@ -126,7 +126,9 @@
     const autoListResult = response.autoListResult || null;
     const serverDetail = response.server ? ` via ${response.server.label}` : "";
     let baseDetail;
-    if (response.alreadyExists) {
+    if (response.alreadyExists && response.pageContentBackfilled) {
+      baseDetail = `Already saved in Karakeep${serverDetail} — page content updated.`;
+    } else if (response.alreadyExists) {
       baseDetail = `Already saved in Karakeep${serverDetail}.`;
     } else if (response.pageContentSaved) {
       baseDetail = `Saved to Karakeep with page content${serverDetail}.`;
