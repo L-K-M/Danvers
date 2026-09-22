@@ -1,5 +1,8 @@
 # Danvers Karakeep Extension
 
+> [!IMPORTANT]
+> LLM disclosure: This codebase was written with substantial help from large language models: AI coding agents working from the [`AGENTS.md`](AGENTS.md) brief in this repo.
+
 **Version:** [<!-- version -->1.5.1<!-- /version -->](https://github.com/L-K-M/Danvers/releases/latest)
 
 Danvers is an alternative Karakeep browser extension mainly aimed at mobile Firefox-based browsers like Iceraven.
